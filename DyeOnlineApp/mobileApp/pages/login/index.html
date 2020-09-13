@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>宜染在线</title>
+    <link rel="stylesheet" href="../../mint-ui/style.min.css">
+    <link rel="stylesheet" href="../../css/font-awesome.min.css">
+    <style type="text/css">
+        html {
+            font-size: 100px;
+            /*设置长度单位rem标准。 注：rem与px都是长度宽度单位，px指一个像素是绝对单位，rem是相对单位，以html字体大小为1rem */
+            height: 100%;
+        }
+
+        body {
+            font-size: 0.16rem;
+            /*恢复浏览器默认字体大小设置*/
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            background-color: #F5F5F5;
+            /*浅灰色背景*/
+        }
+
+        .my-container {
+            box-sizing: border-box;
+            height: 100%;
+            padding: 0.1rem;
+
+        }
+
+        .my-title {
+            width: 100%;
+            text-align: center;
+
+            font-size: 0.4rem;
+            color: #DDDDDD;
+            text-shadow: 0.03rem 0.03rem 0.1rem #DDDDDD;
+            /*文字阴影*/
+            font-weight: bold;
+            letter-spacing: 0.05rem;
+            /*文字距离*/
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="my-container">
+
+
+        <div style="height:15%;"></div>
+        <div class="my-title">{{ title }}</div>
+        <div style="height:10%;"></div>
+
+        <mt-field label="用户名" placeholder="请输入用户名" v-model="dto.u_name"></mt-field>
+        <mt-field label="密码" placeholder="请输入密码" type="password" v-model="dto.u_pwd"></mt-field>
+
+        <div style="height:5%;"></div>
+        <div>
+            <mt-button type="primary" size="large" @click.native="login">登录</mt-button>
+            <mt-button type="default" @click="serverPopupVisible=true" size="large" style="margin-top:0.1rem;">服务器设置
+            </mt-button>
+        </div>
+        <div style="height:10%;"></div>
+        <div style="text-align:center;color:#AAAAAA;">技术支持：XXX软件有限公司</div>
+
+
+        <!--使用mint-ui的popup组件开发服务器设置弹出层-->
+        <mt-popup style="width:96%;" v-model="serverPopupVisible" popup-transition="popup-fade">
+     
+        <mt-header title="服务器设置">
+            <mt-button icon="back" slot="left" @click="serverPopupVisible=false"></mt-button>
+        </mt-header>
+        
+        <div style="width:96%;margin:0 auto;">
+            <mt-field label="IP" placeholder="请输入服务器IP" v-model="serverConfig.ip"></mt-field>
+            <mt-field label="端口" placeholder="请输入服务器端口" v-model="serverConfig.port"></mt-field>
+            <mt-field label="应用" placeholder="请输入服务器应用名称" v-model="serverConfig.app"></mt-field>
+            <mt-button type="default" @click="setServerConfig" size="large">确定</mt-button>
+            <div style="height:0.05rem;"></div>
+        </div>
+   
+   </mt-popup
+
+
+    </div>
+
+    <script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+    <script src="../../mint-ui/index.js"></script>
+    <!-- <script src="../../js/my.js"></script> -->
+    <script src="../../js/my-mobile.js"></script>
+
+
+    <script>
+
+        const vm = new Vue({
+            el: '#app',
+            data: {
+                title: '宜染在线',
+                dto:{}, // 登录时的数据对象 
+                serverPopupVisible: false, // 服务器弹窗的可见性
+                serverConfig: {},//定义服务器参数
+            },
+            methods: {
+                login(){ // 用户登录
+
+                    //location.href = "../home/index.html"; // 跳转到首页
+                    //console.log(this.$axios);
+                    this.$axios.post("/safty/login/user",this.dto)
+                        .then((resp) => {
+                            let res = resp.data; // 获取数据
+                            if(res.success){ // 登录成功执行
+                                this.$indicator.open({
+                                    text: '跳转中...',
+                                    spinnerType: 'fading-circle'
+                                });
+                                setTimeout(()=>{
+                                    this.$indicator.close();
+                                    //window.localStorage.setItem("USER","");
+                                    location.href = "../home/index.html"; // 跳转到首页
+                                },1500);
+                            } else {
+                                this.$toast({  // 给出提示
+                                    message: res.message,
+                                    position: 'middle',
+                                    duration: 5000,
+                                    iconClass:"fa fa-exclamation-circle" // 图标样式
+                                });
+                            }
+                        }).catch((err) => {
+                            this.$toast({  // 给出提示
+                                    message: "服务器繁忙...",
+                                    position: 'middle',
+                                    duration: 5000,
+                                    iconClass:"fa fa-exclamation-circle" // 图标样式
+                                });
+                        });
+                },
+
+                setServerConfig() {//设置服务器参数
+                    this.$setServerConfig(this.serverConfig);
+                    this.serverPopupVisible = false;
+                    this.$toast('服务器设置成功！');
+                },
+
+
+            },
+            mounted() {
+               // this.$toast('提示信息');
+            }
+        });
+
+    </script>
+
+
+</body>
+
+</html>
+	

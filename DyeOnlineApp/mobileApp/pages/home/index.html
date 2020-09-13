@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>宜染在线</title>
+    <link rel="stylesheet" href="../../mint-ui/style.min.css">
+    <link rel="stylesheet" href="../../css/font-awesome.min.css">
+    <style type="text/css">
+        html {
+            font-size: 100px;
+            /*设置长度单位rem标准。 注：rem与px都是长度宽度单位，px指一个像素是绝对单位，rem是相对单位，以html字体大小为1rem */
+            height: 100%;
+        }
+
+        body {
+            font-size: 0.16rem;
+            /*恢复浏览器默认字体大小设置*/
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            background-color: #F5F5F5;
+            /*浅灰色背景*/
+        }
+
+        .my-container {
+            box-sizing: border-box;
+            height: 100%;
+            width: 100%;
+            position: relative;
+        }
+
+        .my-title {
+            width: 100%;
+            text-align: center;
+
+            font-size: 0.4rem;
+            color: #DDDDDD;
+            text-shadow: 0.03rem 0.03rem 0.1rem #DDDDDD;
+            /*文字阴影*/
+            font-weight: bold;
+            letter-spacing: 0.05rem;
+            /*文字距离*/
+        }
+        /* 设置轮播图的大小 */
+        img{ 
+            height: 2rem;
+            width: 4.14rem;
+            margin-top: 0.1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="my-container">
+        <!-- 固定在头部 -->
+        <mt-header title="首页">
+            <template slot="left">
+                宜染在线
+            </template> >
+            <template slot="right">
+                <!-- <i class="fa fa-user-o" aria-hidden="true"></i> -->
+                欢迎您，{{user.u_name}}
+            </template>
+        </mt-header>
+    
+    
+        <!-- 轮播图 -->
+    
+    
+        <div style="position:absolute;top:0.4rem;bottom:0.55rem;left:0;width:100%;overflow: auto;">
+            <div style="width: 100%; display: block; height: 2rem;">
+                <mt-swipe :auto="3000">
+                    <mt-swipe-item><img src="../../assets/1.jpg"></img></mt-swipe-item>
+                    <mt-swipe-item><img src="../../assets/2.jpg"></img></mt-swipe-item>
+                    <mt-swipe-item><img src="../../assets/3.jpg"></img></mt-swipe-item>
+                </mt-swipe>
+            </div>
+            <div style="margin-top: 0.1rem;">
+                <mt-cell v-for="menu in menuList" :title="menu.m_name" :to="'..'+menu.m_url" is-link>
+                </mt-cell>
+    
+            </div>
+    
+    
+            <!-- 底部导航 -->
+            <mt-tabbar fixed v-model="tabId">
+                <mt-tab-item id="0" @click.native="changedTab">
+                    <i slot="icon" class="fa fa-home fa-lg"></i>
+                    首页
+                </mt-tab-item>
+                <mt-tab-item id="1" @click.native="changedTab">
+                    <i slot="icon" class="fa fa-search fa-lg"></i>
+                    搜索
+                </mt-tab-item>
+                <mt-tab-item id="2" @click.native="changedTab">
+                    <i slot="icon" class="fa fa-user fa-lg"></i>
+                    个人中心
+                </mt-tab-item>
+            </mt-tabbar>
+    
+        </div>
+    
+    
+    
+    
+    
+    </div>
+
+    <script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+    <script src="../../mint-ui/index.js"></script>
+    <script src="../../layer_mobile/layer.js"></script>
+    <script src="../../js/my-mobile.js"></script>
+
+    <script>
+
+        const vm = new Vue({
+            el: '#app',
+            data: {
+                user:{}, // 用户信息
+                tabId:"", // 底部菜单对应的ID编号
+                menuList:[
+                   /*  {
+                        menuName:"前处理",
+                        menuUrl:"/process/pretreatment/index.html",
+                    },
+                    {
+                        menuName:"染色",
+                        menuUrl:"/process/dye/index.html",
+                    },
+                    {
+                        menuName:"印花",
+                        menuUrl:"/process/print/index.html",
+                    },
+                    {
+                        menuName:"整理",
+                        menuUrl:"/process/arrange/index.html",
+                    } */
+                ], // 菜单列表
+                selected:[
+                    '../home/index.html',
+                    '../query/index.html',
+                    '../user/index.html',
+                ]// 底部菜单选中
+            },
+            methods: {
+                changedTab(){
+                    const url = this.selected[this.tabId];
+                    console.log(url);
+                    location.href = url;
+                    
+                },
+
+                getCurrUser(){ // 获得当前登录的用户
+                    this.$axios("/safty/home/token")
+                        .then((resp) => {
+                            let res = resp.data;
+                            //console.log(res.success);
+                            if(res.success){
+                                this.user = res.data;
+                                console.log(this.user.u_id);
+                                this.getCurrMenu(this.user.u_id); // 获取用户菜单
+                            } else {
+                                console.log("没有获取到登录的用户的信息！");
+                                const instance = this.$toast({
+                                    message: '未登录，即将跳转到登录页面！',
+                                    position: 'middle',
+                                /*  duration: 3000 */
+                                });
+                                setTimeout(() =>{
+                                    instance.close(); // 关闭提示
+                                    top.location.href = "../login/index.html";
+                                },3000);
+                                //top.location.href = "../login/index.html";
+                            }
+                        }).catch((err) => {
+                            console.log(err);
+                            top.location.href = "../login/index.html";
+                        });
+                },
+
+                getCurrMenu(uId){ // 获得当前登录用户的菜单
+                    this.$myGet(`/safty/home/mobileMenu/${uId}`)
+                        .then((res) => {
+                            if(res.success){
+                                //console.log(res);
+                                this.menuList = res.data; // 绑定对应的信息
+                            } else {
+                                this.$toast({
+                                    message: res.message,
+                                    position: 'bottom',
+                                    duration: 5000
+                                });
+                                return;
+                            }
+                        });
+                }
+            },
+            mounted() {
+                this.getCurrUser();
+            },
+            filters:{
+                /* nowUser(name){ // 过滤用户信息
+                    let date = new Date(); // 获取系统的时间
+                    // 更具系统时间展示当前登录的用户
+                    if(date.getHours < 12)
+                }, */
+            }
+        });
+
+    </script>
+
+
+</body>
+
+</html>
+	

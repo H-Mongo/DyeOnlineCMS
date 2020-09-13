@@ -1,0 +1,43 @@
+server:
+  port: 80 # 端口信息
+
+# 日志信息配置
+logging:
+  level:
+    root: info
+    web: debug
+    org: 
+      springframework:
+        web: 
+          servlet: 
+            mvc: trace
+    com:
+      mongo:
+        yrzx:
+          mapper: trace
+      
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/dyeing_online?useSSL=false&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=utf8
+    username: root
+    password: root
+    
+  jackson:
+    date-format: yyyy-MM # 设置向前台返回date为json串
+    
+  mvc:
+    date-format: yyyy-MM # 将页面传入的date格式化
+
+# mybatis 配置
+mybatis:
+  mapper-locations: mapper/**/*.Mapper.xml # mapper.xml文件的映射路径
+  
+# pageHelper分页插件的参数配置
+pagehelper:
+  helper-dialect: mysql # 设置数据库语言类型
+  #dialect: mysql 
+  reasonable: true # 设置合理化参数
+  
+
+  

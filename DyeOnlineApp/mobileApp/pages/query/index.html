@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>宜染在线</title>
+    <link rel="stylesheet" href="../../mint-ui/style.min.css">
+    <link rel="stylesheet" href="../../css/font-awesome.min.css">
+    <style type="text/css">
+        html {
+            font-size: 100px;
+            /*设置长度单位rem标准。 注：rem与px都是长度宽度单位，px指一个像素是绝对单位，rem是相对单位，以html字体大小为1rem */
+            height: 100%;
+        }
+
+        body {
+            font-size: 0.16rem;
+            /*恢复浏览器默认字体大小设置*/
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            background-color: #F5F5F5;
+            /*浅灰色背景*/
+        }
+
+        .my-container {
+            box-sizing: border-box;
+            height: 100%;
+
+        }
+
+        .my-title {
+            width: 100%;
+            text-align: center;
+
+            font-size: 0.4rem;
+            color: #DDDDDD;
+            text-shadow: 0.03rem 0.03rem 0.1rem #DDDDDD;
+            /*文字阴影*/
+            font-weight: bold;
+            letter-spacing: 0.05rem;
+            /*文字距离*/
+        }
+        /* 设置轮播图的大小 */
+        img{ 
+            height: 2rem;
+            width: 5rem;
+        }
+       .mint-searchbar{
+            position: relative;
+            background-color: gainsboro;
+            box-sizing: border-box;
+            padding: 2px 6px;
+            z-index: 1;
+            color: white;
+            width: 100%;
+       }
+        
+    </style>
+</head>
+
+<body>
+    <div id="app" class="my-container">
+
+            <mt-header title="搜索">
+                <div slot="left">
+                    <mt-button icon="back" @click.native="location.href = '../home/index.html'">返回</mt-button>
+            
+                </div>
+                <mt-button slot="right" icon="more"></mt-button>
+            </mt-header>
+            <div style="padding: 0.05rem;">
+                <mt-field placeholder="请输入关键字搜索..." disableClear v-model="queryObj.queryStr">
+                    <mt-button type="primary" class="fa fa-search" @click="goSearch()"> 搜索</mt-button>
+                </mt-field>
+            </div>
+            
+
+    </div>
+
+    <script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+    <script src="../../mint-ui/index.js"></script>
+    <script src="../../../layer_mobile/layer.js"></script>
+    <script src="../../../js/my-mobile.js"></script>
+
+    <script>
+
+        const vm = new Vue({
+            el: '#app',
+            data: {
+                user:{}, // 用户信息
+                queryObj:{}, // 查询对象
+            },
+            methods: {
+                goSearch(){ // 搜索方法
+
+                }
+            },
+            mounted() {
+
+            },
+            filters:{
+                
+            }
+        });
+
+    </script>
+
+
+</body>
+
+</html>
+	

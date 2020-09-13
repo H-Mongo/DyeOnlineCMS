@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>宜染在线主页</title>
+    <!-- 此处设置对移动端页面开发很重要，该设置确保页面与设备相适应 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="../../element-ui/theme-chalk/index.css">
+
+    <style type="text/css">
+        .el-input {
+            width: 160px;
+        }
+
+        .el-card__header {
+            box-sizing: border-box;
+            padding: 18px 20px 0px;
+            border-bottom: 1px solid rgb(235, 238, 245);
+        }
+
+        /* 设置弹出对话框中的分组信息的样式 */
+        .group-info{
+            margin-top: 10px;
+            margin-bottom: 10px;
+            padding-left: 20px;
+            color: #909399;
+            font-weight: bolder;
+        }
+
+        .group-label{
+            color: #606266;
+            font-weight: bolder;
+            font-size: 16px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div id="app">
+
+        <el-card class="box-card" :body-style="{ padding: '5px', margin: '0px'}">
+            <!-- 卡片头显示的内容 -->
+            <div slot="header" class="clearfix">
+                <!-- 查询表单 -->
+                <el-form :inline="true" :model="queryObj">
+                    <el-form-item label="状态查询">
+                        <!-- 30 质检中 35 已质检 -->
+                        <el-select v-model="queryObj.process_status" filterable @change="selectionChangedPlanStatus" placeholder="已整理">
+                            <el-option label="查看全部" value=""></el-option>
+                            <el-option label="质检中" value="30"></el-option>
+                            <el-option label="已质检" value="35"></el-option>
+                        </el-select>
+                    </el-form-item>
+
+                    <el-form-item label="组号">
+                            <el-input v-model="queryObj.process_id" placeholder="请输入分组号" clearable></el-input>
+                    </el-form-item>
+
+                    <el-form-item label="序号">
+                        <el-input v-model="queryObj.plan_xh" placeholder="请输入计划序号" clearable></el-input>
+                    </el-form-item>
+
+                    <el-form-item label="整理量">
+                            <el-col :span="11">
+                                <el-input type.native="number" placeholder="起始量" v-model="queryObj.group_num_start" style="width: 100%;"></el-input>
+                            </el-col>
+                            <el-col class="line" :span="2">&nbsp;&nbsp;至</el-col>
+                            <el-col :span="11">
+                                <el-input type.native="number" placeholder="结束量" v-model="queryObj.group_num_end" style="width: 100%;"></el-input>
+                            </el-col>
+                    </el-form-item>
+
+                    <el-form-item>
+                        <el-button type="primary" size="small" @click.prevent="execQuery" icon="el-icon-search">查询
+                        </el-button>
+                    </el-form-item>
+                </el-form>
+
+            </div>
+
+            <el-button type="primary" @click="openWinAdd" class="el-icon-edit-outline">开始质检</el-button>
+            <!-- 表格内容 -->
+            <el-table :data="page.rows" stripe style="width: 100%" empty-text tooltip-effect="dark"
+                @selection-change="handleSelectionChange">
+                <el-table-column type="selection" width="55" fixed="left">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" width="80" prop="process_id" label="组号">
+                </el-table-column>
+                <el-table-column header-align="center" align="center"  prop="plan_xh" label="计划序号">
+                </el-table-column>
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="arrange_num" label="整理量(单位：米)">
+                </el-table-column>
+                <el-table-column header-align="center" width="60" align="center" label="详情">
+                    <template slot-scope="scope">
+                        <el-button type="text" @click="planDetails(scope)">查看</el-button>
+                    </template>
+                </el-table-column>
+
+                <el-table-column header-align="center" align="center" width="120" prop="process_status" label="状态">
+                    <template slot-scope="scope">
+                        <el-tag :type="scope.row.process_status | filterTagType" close-transition>
+                            {{scope.row.process_status | filterTagName}}</el-tag>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="操作" header-align="center" width="200" fixed="right" align="center">
+                     <!-- 25 已整理 30 质检中30 已质检 -->
+                    <template slot-scope="scope">
+                            <el-button-group>
+                            <el-button type="primary" :disabled="scope.row.process_status !== '30'" size="mini"
+                                @click="openEditWin(scope.row)">修改</el-button>
+                            <el-button type="primary" :disabled="scope.row.process_status !== '30'" size="mini"
+                                @click="finishChecked(scope.row)" >完成</el-button>
+                            </el-button-group>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <!-- 分页条 -->
+            <el-pagination background @size-change="pageSizeChange" @current-change="pageNumChange"
+                :current-page.sync="page.pageNum" :page-sizes="[5, 7, 10]" :page-size="5"
+                layout="sizes, prev, pager, next, jumper, ->, total" :total="page.total">
+            </el-pagination>
+        </el-card>
+
+        <!-- 修改新增表单 -->
+        <el-dialog :visible.sync="visible" width="40%" center>
+            <div slot="title">
+                <span style="color: #409EFF">{{formTitle}}</span>
+            </div>
+
+            <el-row :gutter="5" >
+                    <el-col span="10">
+                        <div class="grid-content bg-purple">
+                            <!-- 修改隐藏 -->
+                                <el-select label="选择分组" v-model="processId" :disabled="!isAdd" filterable @change="selectGroup" placeholder="选择分组">
+                                        <el-option
+                                            v-for="g in groups"
+                                            :key="g.process_id"
+                                            :label="'分组编号-'+ g.process_id"
+                                            :value="g.process_id">
+                                        </el-option>
+                                </el-select>
+                                <el-card class="box-card" style="margin-top: 10px; padding: '0px';">
+                                    
+                                    <div class="grid-content group-label">计划序号：</div>
+                                    <div class="grid-content group-info" >{{group.plan_xh}}</div>
+                                
+                                    <div class="grid-content group-label">整理量（米）：</div>
+                                    <div class="grid-content group-info">{{group.arrange_num}}</div>
+                                
+                                    <div class="grid-content group-label">产品类型：</div>
+                                    <div class="grid-content group-info">{{group.planTypeName}}</div>
+                                </el-card>
+                        </div>
+                    </el-col>
+                    <el-col span="14">
+                                <el-card class="box-card">
+                                    <el-form :model="product" label-width="60px" ref="check">
+                                        <el-form-item v-for="(level, index) in product.levelArr" :key="index" :label="level.level_name">
+                                            <el-input v-model="level.product_num" placeholder="请录入等级的产量"></el-input>
+                                        </el-form-item>
+                                      <el-form-item>
+                                        <el-button type="primary" @click="saveChecks('check')">{{ isAdd ? '保存' : '修改' }}</el-button>
+                                        <el-button v-show="isAdd" @click="resetForm('check')">重置</el-button>
+                                      </el-form-item>
+                                    </el-form>
+                                </el-card>
+                        </el-col>
+            </el-row>
+            
+        </el-dialog>
+
+
+
+    </div>
+
+    <script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+    <script src="../../element-ui/index.js"></script>
+    <script src="../../js/my.js"></script>
+
+    <script type="text/javascript">
+
+
+
+        const vm = new Vue({
+            el: "#app",
+            data: {
+                page: {}, // 页面对象
+                queryObj: { // 查询参数
+                    pageSize: 5,
+                    pageNum: 1,
+                },
+                isAdd: true, // 默认显示显示增加窗口的提交按钮
+                formTitle: "", // 新增（修改）时弹出框的标题
+                dto: {}, // 新增（修改）数据对象
+                visible: false, // 是否显示对话框
+                group:{}, // 弹出框对应的分组信息
+                product:{ // 用于绑定登记输入框 表示成品质量，取值如下：
+                    levelArr:[{
+                        product_level:'01', //  01：一等品
+                        level_name:'一等品',
+                        product_num:""
+                    },{
+                        product_level:'02', // 02：二等品
+                        level_name:'二等品',
+                        product_num:""
+                    },{
+                        product_level:'03', // 03：三等品
+                        level_name:'三等品',
+                        product_num:""
+                    },{
+                        product_level:'04', //  04：等外品
+                        level_name:'等外品',
+                        product_num:""
+                    },]
+                },
+                groups:[], // 用于进行质检的分组数组
+                processId:'', // 用于绑定选中的分组ID
+                productId: '', // 用户绑定修改的产品id
+            },
+            methods: {
+
+                // 获得页面对象
+                getPage(pageNum) { // 获得页面数据
+                    // 修改页码
+                    this.queryObj.pageNum = pageNum;
+                    console.log(this.queryObj);
+                    this.$axios.get('/process/check/groups', {
+                        params: this.queryObj
+                    }).then(resp => {
+                            console.log(resp);
+                            this.page = resp.data;
+                            this.getPlanListAndTypes(); // 查询计划和类型
+                        })
+                        .catch(error => {
+                            console.log(error);
+                        });
+                },
+                // 执行查询操作
+                execQuery() {
+                    //console.log(this.queryObj);
+                    let tempSize = this.queryObj.pageSize; // 缓存之前的页面大小
+                    // 修改Size
+                    this.queryObj.pageSize = this.page.total;
+                    this.getPage(1);
+                    // 还原页面大小
+                    this.queryObj.pageSize = tempSize;
+                },
+
+                // 监听单选框操作
+                handleSelectionChange(val) {
+                    this.checkboxVals = val;
+                },
+
+                selectionChangedPlanStatus(val) {
+                    //console.log(val);
+                    // 修改查询参数
+                    this.queryObj.plan_status = val;
+                    // 刷新页面
+                    this.getPage(1);
+                },
+
+                // 选择质检的分组
+                selectGroup(id){
+
+                    for (const g of this.groups) { // 遍历可以执行质检的分组
+                        if (g.process_id === id) { // 找到
+                            this.group = g; // 绑定对已找到的分组
+                            break; // 结束循环
+                        }
+                    }
+
+                },
+
+                selectionChangedPlanType(val) {
+                    //console.log(val);
+                    // 修改查询参数
+                    this.queryObj.plan_type = val;
+                    // 刷新页面
+                    this.getPage(1);
+                },
+
+                planDetails(row){ // 查看计划的详情
+                    console.log("详情");
+                },
+               
+
+                saveChecks(formName){ // 保存质检等级
+                    this.$refs[formName].validate((valid) => { // 验证表单中的内容是否合理
+                        if (valid) {
+                            //alert("122");
+                            // 对用户输入的等级数据进行检查
+                            let sum = new Number(0);
+                                // 遍历等级数据列表的信息
+                                for (let  level of this.product.levelArr) {
+
+                                    if(Number(level.product_num) < 0){
+                                        this.$message({
+                                            message: "请输入正数！",
+                                            type: 'warning'
+                                        });
+                                        return;
+                                    }
+
+                                    sum +=Number(level.product_num); // 对填入的等级量进行求和，判断等级划分的数据是否合法
+                                }
+                                console.log("质检等级求和为：");
+                                console.log(Number(sum));
+                                // 等级分量求和等于0或者大于合理数据，给出提示，若求和等于0的时候则提示为划分等级，
+                               if(Number(sum) > this.group.arrange_num || isNaN(Number(sum))) {
+                                    this.$message({
+                                        message: "分组数据不合法，请重新填写！",
+                                        type: 'warning'
+                                    });
+                                    return; // 终止
+                                }
+
+                            // 封装数据传输的json对象
+                            const dto = {
+                                process_id: this.processId,
+                                levelArr: this.product.levelArr
+                            };
+
+                            console.log("传输的数据格式：");
+                            console.log(dto);
+
+                            if (this.isAdd) { // 判断是分等级还是修改
+
+                                // 执行保存分级
+                                this.execSave(dto);
+                            } else {
+
+                                // 执行修改
+                                this.execUdp(dto);
+                            }
+                            //alert('submit!');
+                        } else {
+                            console.log('error submit!!');
+                            return false;
+                        }
+                    });
+                },
+
+                resetForm(formName){ // 重置表单
+                    this.$refs[formName].resetFields();
+                },
+
+                // 查找可以用于质检的分组信息
+                getCheckedGroups(){
+                    this.$axios.get("/process/check/uncheckd")
+                        .then((resp) => {
+                            const res = resp.data;
+                            if(res.success){ 
+                                this.groups = res.data;
+                                console.log("获得待质检信息成功！");
+                            } else {
+                                this.$message(res.message);
+                            }
+                        }).catch((err) => {
+                            console.log(err);
+                        });
+                },
+
+                // 打开增加窗口
+                openWinAdd() {
+                    this.group = {} // 消除历史数据的影响
+                    this.processId = '' // 消除历史点击产生的缓存
+                    
+                    // 消除修改产生的影响
+                    // 输入框中的数据为空串时，置为默认值0，防止后台出现数据转换异常
+                    for (const level of this.product.levelArr) {
+                            level.product_num = 0;
+                    }
+
+                    // 获取未质检的分组信息
+                    this.getCheckedGroups();
+
+                    this.isAdd = true; // 激活增加提交按钮的功
+                    this.formTitle = "设置质检等级"; // 修改窗口的标题
+                    this.visible = true // 显示窗口
+                    //this.statusOptions = options;
+                },
+
+                // 打开修改窗口
+                openEditWin(row) {
+
+                    this.group = {} // 消除历史数据的影响
+
+                    let temp = this.$copyObj(row); // 消除修改时的数据影响
+                    
+                    // 通过遍历将当前选中的分组信息绑定上去
+                    this.group = row;
+                    
+                    //this.productId = temp.product_id; // 产品的编号
+
+                    // 遍历绑定对应质检等级中的数据
+                    for (const level of this.product.levelArr) {
+
+                        for (const product of row.products) {
+                            
+                            // 判断质检的等级是否一致
+                            if(level.product_level === product.product_level){
+                                level.product_num = product.product_num; // 修改需要绑定的数据
+                            }
+
+                        }
+                        
+                    } 
+                    
+                    this.isAdd = false; // 激活增加提交按钮的功
+                    this.formTitle = "修改质检等级"; // 修改窗口的标题
+                    this.visible = true // 显示窗口
+                },
+
+                // 执行增加
+                execSave(dto) {
+                    //console.log(this.dto);
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '加载中...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    this.$axios.post("/process/check/products", dto).then(resp => {
+                        //console.log(resp);
+                        loading.close(); // 关闭加载框
+                        let res = resp.data;
+                        if (res.success) {
+                            this.visible = false; // 关闭弹窗
+                            this.getPage(this.page.pageTotal + 1); // 刷新页
+                            this.$message({
+                                message: res.message,
+                                type: 'success'
+                            });
+                        } else {
+                            this.$message({
+                                message: res.message,
+                                type: 'error'
+                            });
+                        }
+                    }).catch(error => {
+                            loading.close(); // 关闭加载框
+                            this.$message({
+                                message: "添加失败！",
+                                type: 'error'
+                            });
+                            console.log(error);
+                        });
+                },
+                // 执行修改
+                execUdp(dto) {
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '加载中...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    this.$axios.put("/process/check/products", dto).then(resp => {
+                        console.log(resp);
+                        loading.close(); // 关闭加载框
+                        let res = resp.data;
+                        if (res.success) {
+                            this.visible = false; // 关闭弹窗
+                            this.getPage(this.page.pageNum); // 刷新当前页
+                            this.$message({
+                                message: res.message,
+                                type: 'success'
+                            });
+                        } else {
+                            this.$message({
+                                message: res.message,
+                                type: 'error'
+                            });
+                        }
+                    }).catch(error => {
+                            loading.close(); // 关闭加载框
+                            this.$message({
+                                message: "修改失败！",
+                                type: 'error'
+                            });
+                            console.log(error);
+                        });
+
+                },
+
+                // 执行质检完成的操作
+                finishChecked(row) {
+
+                    // 修改对应的状态
+                    this.$axios.put(`/process/check/products/${row.process_id}`,)
+                        .then((resp) => {
+                            let res = resp.data;
+                            if (res.success) {
+                                this.getPage(this.page.pageNum); // 刷新当前页
+                                this.$message({
+                                    message: res.message,
+                                    type: 'success'
+                                });
+                            } else {
+                                this.$message({
+                                    message: res.message,
+                                    type: 'error'
+                                });
+                            }
+                        })
+                        .catch((error) => { });
+                },
+                 
+                // 页面数据数量变化
+                pageSizeChange(size) {
+                    console.log(`每页 ${size} 条`);
+                    this.queryObj.pageSize = size; // 修改页面大小
+                    this.getPage(1); // 重新查询
+                },
+                // 当前页码
+                pageNumChange(currPage) {
+                    console.log(`当前页: ${currPage}`);
+                    this.queryObj.pageNum = currPage; // 修改页码
+                    this.getPage(currPage); // 重新查询
+                },
+
+                // 获得计划列表和计划类型
+                getPlanListAndTypes(){
+                    // 利用获取计划信息
+                    this.$axios.get("/plan/manager/planInfo")
+                        .then((response) => {
+                            //console.log(response)
+                            let ressult = response.data;
+                            if (ressult != null || ressult !== undefined) {
+                                this.planList = ressult.rows; // 绑定计划信息
+                                this.planTypes = ressult.types; // 绑定计划类型
+                                console.log("计划信息");
+                                console.log(this.planList);
+                                console.log("计划类型");
+                                console.log(this.planTypes);
+                            } else {
+                                //console.log(ressult);
+                                this.$message({
+                                    message: ressult.message,
+                                    type: 'warning'
+                                });
+                            }
+                        }).catch((err) => {
+
+                        })
+                }
+                 
+
+            },
+            mounted() {
+               
+                this.getPage(1); // 查询第一页
+
+            },
+            filters: {
+                filterGroup(index){ // 对计划的类别进行过滤
+                    // 遍历类别集合，判断对应的类别 
+                    index += 1;
+                     return '分组' + index;
+                },
+                filterPlanType(tId){ // 对计划的类别进行过滤
+                //console.log(this)
+                //console.log(vm.planTypes)
+                    // 遍历类别集合，判断对应的类别 
+                     for (let o of vm.planTypes) {
+                        if(tId === o.tId){
+                            return o.tName;
+                            break;
+                        }
+                    }
+ 
+                },
+                // 依据状态码，渲染对应的tag类型
+                filterTagType(state) {
+                    // 25 已整理
+                    // 30 质检中
+                    // 35 已质检
+                    // 返回标签类型
+                    return state === '25' ? "info" : (state === '30' ? "primary" : "success");
+                },
+                // 依据状态码，渲染对应的tag名称
+                filterTagName(state) {
+                    // 返回对应的处理信息
+                    return state === '25' ? "已整理" : (state === '30' ? "质检中" : "已质检");
+                }
+            }
+        });
+
+
+    </script>
+</body>
+
+</html>

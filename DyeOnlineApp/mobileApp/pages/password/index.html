@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>宜染在线</title>
+    <link rel="stylesheet" href="../../mint-ui/style.min.css">
+    <link rel="stylesheet" href="../../css/font-awesome.min.css">
+    <style type="text/css">
+        html {
+            font-size: 100px;
+            /*设置长度单位rem标准。 注：rem与px都是长度宽度单位，px指一个像素是绝对单位，rem是相对单位，以html字体大小为1rem */
+            height: 100%;
+        }
+
+        body {
+            font-size: 0.16rem;
+            /*恢复浏览器默认字体大小设置*/
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            background-color: #F5F5F5;
+            /*浅灰色背景*/
+        }
+
+        .my-container {
+            box-sizing: border-box;
+            height: 100%;
+            width: 100%;
+            position: relative;
+            /* padding: 0.1rem; */
+
+        }
+
+        .my-title {
+            width: 100%;
+            text-align: center;
+
+            font-size: 0.4rem;
+            color: #DDDDDD;
+            text-shadow: 0.03rem 0.03rem 0.1rem #DDDDDD;
+            /*文字阴影*/
+            font-weight: bold;
+            letter-spacing: 0.05rem;
+            /*文字距离*/
+        }
+        /* 设置轮播图的大小 */
+    </style>
+</head>
+
+<body>
+    <div id="app" class="my-container">
+
+
+        <!-- 固定在头部 -->
+        <mt-header>
+            <div slot="left">
+                <mt-button icon="back" @click.native="location.href = '../user/index.html'">返回</mt-button>
+        
+            </div>
+            <!-- <mt-button icon="more" slot="right" ></mt-button> -->
+        </mt-header>
+        <div style="margin-top: 0.1rem; padding: 0.1rem;">
+            <mt-field label="原密码" placeholder="请输入旧密码" type="password" :attr="{ maxlength: 12 }" v-model="pwdObj.oldPwd"></mt-field>
+            <mt-field label="新密码" placeholder="请输入新密码" type="password" :attr="{ maxlength: 12 }" v-model="pwdObj.newPwd"></mt-field>
+            <mt-field label="确认密码" placeholder="请确认新密码" type="password" :attr="{ maxlength: 12 }" v-model="pwdObj.confirmPwd"></mt-field>
+            <div style="margin-top: 0.1rem">
+                <mt-button type="primary" size="large" @click="udpPwd">提交修改</mt-button>
+            </div>
+        </div>
+
+
+
+    </div>
+
+    <script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+    <script src="../../mint-ui/index.js"></script>
+    <script src="../../layer_mobile/layer.js"></script>
+    <script src="../../js/my-mobile.js"></script>
+
+    <script>
+
+        const vm = new Vue({
+            el: '#app',
+            data: {
+                pwdObj:{
+                    oldPwd:'',
+                    newPwd:'',
+                    confirmPwd:'',
+                }, // 修改密码绑定的对象
+            },
+            methods: {
+                udpPwd(){ // 密码修改调用
+
+                    /* u_pwd: this.pwdObj.oldPwd, // 旧密码
+                    new_pwd: this.pwdObj.newPwd, // 新密码
+                    u_id: this.currUser.u_id // 用户的ID */
+                    //confirmPwd
+                    if(!(this.pwdObj.oldPwd != '' && this.pwdObj.newPwd != '' && this.pwdObj.confirmPwd != '')){ // 对密码修改表单提交前进行判断
+                        // 给出提示信息
+                        this.$toast({
+                            message: '无法提交空数据！',
+                            position: 'middle',
+                            duration: 3000
+                        });
+                        return;
+                    }
+                    // 判断新密码和确认密码是否一致
+                    if(!(this.pwdObj.newPwd === this.pwdObj.confirmPwd)){
+                        this.$toast({
+                            message: '两次密码输入不一致！',
+                            position: 'middle',
+                            duration: 3000
+                        });
+                        return;
+                    }
+                    // 首先获取当前的登录用户
+                    this.$axios.get("/safty/home/token")
+                        .then((resp) => {
+                            let res = resp.data;
+                            console.log(res)
+                            if(res.success){
+                                let u_id = res.data.u_id; // 获得登陆的用户ID
+                                console.log(u_id)
+                                // 包装修改参数
+                                const obj = {
+                                        u_pwd: this.pwdObj.oldPwd, // 旧密码
+                                        new_pwd: this.pwdObj.newPwd, // 新密码
+                                        u_id: u_id // 用户的ID
+                                }
+                                // 发出修改密码的请求
+                                this.$axios.put("/safty/home/password",obj)
+                                    .then((response) => {
+                                        let result = response.data;
+                                        if(result.success){ // 修改成功
+                                            this.$toast({
+                                                message: result.message+'请重新登录',
+                                                position: 'middle',
+                                                duration: 3000
+                                            });
+                                            // 跳转到登录页面
+                                            setTimeout(() => {
+                                                location.href = "../login/index.html";
+                                            },3000);
+
+                                            return;
+                                        } else {
+                                            // 修改失败
+                                            this.$toast({
+                                                message: result.message,
+                                                position: 'bottom',
+                                                duration: 3000
+                                            });
+                                            return;
+                                        }
+                                        
+                                    }).catch((error) => {
+                                        console.log(error);
+                                        // 修改失败
+                                        this.$toast({
+                                                message: "服务器未响应",
+                                                position: 'bottom',
+                                                duration: 3000
+                                            });
+                                            return;
+                                    });
+
+                            } else {
+                                this.$toast({
+                                    message: '未登录，请登录',
+                                    position: 'middle',
+                                    duration: 3000
+                                });
+                                // 跳转到登录页面
+                                setTimeout(() => {
+                                    location.href = "../login/index.html";
+                                }, 3000);
+                            }
+                        }).catch((err) => {
+                            this.$toast({
+                                message: "服务器未响应",
+                                position: 'bottom',
+                                duration: 3000
+                            });
+                            return;
+                        });
+                   
+                }
+
+            },
+            mounted() {
+
+            },
+            filters:{
+                
+            }
+        });
+
+    </script>
+
+
+</body>
+
+</html>
+	

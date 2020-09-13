@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>登录页面</title>
+
+	<!-- 此处设置对移动端页面开发很重要，该设置确保页面与设备相适应 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="../../element-ui/theme-chalk/index.css">
+    
+    <style type="text/css">
+    	html,body{
+		 height: 100%;
+		 /*background-image: url(../../images/back.jpg);*/
+		 background-color: beige;
+    	}
+    	#app{
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			width: 300px;
+			height: 500px;
+			margin-top: -250px;
+			margin-left: -150px;
+			/* border:1px solid red; */
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+    	}
+    
+    </style>
+    
+    
+</head>
+<body>
+
+	<div id="app" >
+		<h1 style="color: #409EFF; margin-left: 110px; ">用户登录</h1>
+		  		<el-form :model="user" ref="loginForm" label-width="75px" status-icon="true" >
+					  <el-form-item
+					    prop="u_name"
+					    label="用户名" :rules="[
+	      { required: true, message: '请输入用户名', trigger: 'blur' },
+	      { min: 3, max: 5, message: '长度在 3 到 5 个字符', trigger: ['blur', 'change'] }
+	    ]">
+					    <el-input type="text" v-model="user.u_name"></el-input>
+					  </el-form-item>
+					  
+					  <el-form-item prop="u_pwd" label="密码" :rules="[
+	      { required: true, message: '请输入密码', trigger: 'blur' },
+	      { min: 3, max: 8, message: '长度在 3 到 8 个字符', trigger: ['blur', 'change'] }
+	    ]">
+					    <el-input type="password" v-model="user.u_pwd" autocomplete="off"></el-input>
+					  </el-form-item>
+					
+					  <el-form-item>
+						  	<el-row gutter="10" >
+								  <el-col sapn="12" offset="3">
+									    <el-button type="primary" @click.prevent="submitForm('loginForm')">登录</el-button>
+									    <el-button @click.prevent="resetForm('loginForm')">重置</el-button>
+								  </el-col> 
+							</el-row>
+					  </el-form-item>
+					</el-form>
+			
+			
+	</div>
+
+
+ 
+
+	<script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+	<script src="../../element-ui/index.js"></script>
+	<script src="../../js/my.js"></script>
+    
+    <script type="text/javascript">
+    
+    
+    	const vm = new Vue({
+    		el:"#app",
+    		data:{
+    			user: {}
+    		},
+    		methods:{
+    			// 重置表单
+    			resetForm(formName){
+    			 // 重置表单中的数据
+    			 this.$refs[formName].resetFields();
+    			},
+    			// 提交表单
+    			submitForm(formName) {
+    		        this.$refs[formName].validate((valid) => { // 提交时对表单中的信息 进行验证
+    		          if (valid) { // 验证通过
+    		        	 
+    		    	   console.log(this.user); 
+    		        	  
+    		           // 使用axios提交数据
+    		           this.$axios.post("/safty/login/user", this.user)
+    		           .then((resp) => {
+						//    console.log(response);
+						let res = resp.data;
+						   // 判断用户登录成功与否
+						   if(res.success){
+							//window.localStorage.setItem("USER",res.data.u_); // 将用户的信息存储在客户端
+								const loading = this.$loading({
+									lock: true,
+									text: '登录成功，跳转中...',
+									spinner: 'el-icon-s-promotion',
+									background: 'rgba(0, 0, 0, 0.7)'
+								});
+								// 延时跳转
+								setTimeout(() => {
+									loading.close();
+									// 登录成功完成页面跳转
+									window.location.href = "../home/index.html"; // 前往首页
+								}, 2000);
+							   
+						   } else {
+								
+						   }
+						}).catch((error) => {
+							console.log(error);
+    		        	    alert("出错了！");
+    		        	  });
+    		    	   
+    		          } else { // 验证不通过
+    		            console.log('error submit!!');
+    		            return false;
+    		          }
+    		        });
+    		       
+    		        //return false; // 阻止表单默认行为
+    		      }
+    		}
+    	});
+    
+    
+    </script>
+    
+    
+</body>
+</html>

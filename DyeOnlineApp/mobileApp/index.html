@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>宜染在线</title>
+
+    <style type="text/css">
+        html {
+            font-size: 100px;
+            /*设置长度单位rem标准。 注：rem与px都是长度宽度单位，px指一个像素是绝对单位，rem是相对单位，以html字体大小为1rem */
+            height: 100%;
+        }
+
+        body {
+            font-size: 0.16rem;
+            /*恢复浏览器默认字体大小设置*/
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            background-color: #F5F5F5;
+            /*浅灰色背景*/
+        }
+
+        #app {
+            box-sizing: border-box;
+            height: 100%;
+            padding: 0.1rem;
+        }
+
+        .mystyle{
+            display: flex;
+            flex-direction:column;
+            justify-content:center;
+            align-items: center;
+            font-weight: bold;
+            font-size:0.4rem;
+        }
+
+        .bounce-enter-active {
+            animation: bounce-in 1s;
+        }
+
+       
+
+        @keyframes bounce-in {
+            0% {
+                font-size:0rem;
+                border-radius:0rem;
+                width:0rem;
+                height:0rem;
+                
+            }
+
+            100% {
+                font-size:0.4rem;
+                border-radius:1.5rem;
+                width:3rem;
+                height:3rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="mystyle">
+
+        <transition name="bounce">
+            <div v-if="show" style="display:flex;flex-direction: column ;justify-content:center;
+            align-items: center;background-color:#FF5522;color:yellow;overflow: hidden;border-radius:1.5rem;
+            width:3rem;
+            height:3rem;"  >宜染在线</div>
+        </transition>
+
+
+
+
+    </div>
+
+    <script src="js/vue.min.js"></script>
+
+    <script>
+
+        const vm = new Vue({
+            el: '#app',
+            data: {
+                show:false,
+            },
+            methods: {
+
+            },
+            mounted() {
+                this.show=true;
+                setTimeout(()=>{location.href='pages/safty/login/index.html';},1200);
+            }
+        });
+
+    </script>
+
+
+</body>
+
+</html>

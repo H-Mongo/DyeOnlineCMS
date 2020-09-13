@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>宜染在线主页</title>
+    <!-- 此处设置对移动端页面开发很重要，该设置确保页面与设备相适应 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="../../element-ui/theme-chalk/index.css">
+
+    <style type="text/css">
+        .el-input {
+            width: 120px;
+        }
+
+        form {
+            display: block;
+            margin-top: 0em;
+            margin-bottom: 0em;
+        }
+
+        .el-card__header {
+            box-sizing: border-box;
+            padding: 18px 20px 0px;
+            border-bottom: 1px solid rgb(235, 238, 245);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app">
+
+        <el-card class="box-card" :body-style="{ padding: '10px', margin: '0px'}">
+            <!-- 卡片头显示的内容 -->
+            <div slot="header" class="clearfix">
+                <!--  <span>产品规格参数</span> -->
+                <!-- 查询表单 -->
+                <el-form :inline="true" :model="queryObj" class="demo-form-inline">
+                    <el-form-item label="状态选择">
+                        <el-select v-model="queryObj.ro_status" @change="selectionChanged" placeholder="未确定">
+                            <!-- 状态 00-未确定 22-确定 55-启用 77-禁用 99-逻辑删除 -->
+                            <el-option label="查看全部" value=""></el-option>
+                            <el-option label="已确定" value="22"></el-option>
+                            <el-option label="已启用" value="55"></el-option>
+                            <el-option label="已禁用" value="77"></el-option>
+                            <el-option label="已删除" value="99"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="编号">
+                        <el-input v-model="queryObj.ro_id" placeholder="请输入编号" clearable></el-input>
+                    </el-form-item>
+                    <el-form-item label="名称">
+                        <el-input type="text" v-model="queryObj.ro_name" placeholder="请输入名称" clearable></el-input>
+                    </el-form-item>
+                    <el-form-item label="备注">
+                        <el-input type="text" v-model="queryObj.ro_remark" placeholder="请输入备注" clearable></el-input>
+                    </el-form-item>
+
+                    <el-form-item>
+                        <el-button type="primary" size="small" @click.prevent="execQuery" icon="el-icon-search">查询
+                        </el-button>
+                    </el-form-item>
+                </el-form>
+            </div>
+
+            <el-button type="primary" @click="openWinAdd" class="el-icon-edit-outline">新增角色</el-button>
+            <el-button type="danger" @click="execBatchDel" class="el-icon-delete">批量删除</el-button>
+            <!-- 表格内容 -->
+            <el-table :data="page.rows" stripe style="width: 100%" empty-text tooltip-effect="dark"
+                @selection-change="handleSelectionChange">
+                <el-table-column type="selection" width="55" fixed="left">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="ro_id" label="角色编号" width="60">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="ro_name" label="角色名称" width="180">
+                </el-table-column>
+                <el-table-column header-align="center" prop="ro_remark" label="角色备注">
+                </el-table-column>
+
+                <el-table-column header-align="center" width="100" align="center" label="权限信息">
+                    <template slot-scope="scope">
+                        <el-button type="text" @click="authTable(scope)">查看详情</el-button>
+
+                    </template>
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="ro_status" label="状态" width="100"
+                    :filters="this.$statArr" :filter-method="filterStat" filter-placement="bottom-end">
+                    <template slot-scope="scope">
+                        <el-tag :type="scope.row.ro_status | filterTagType" close-transition>
+                            {{scope.row.ro_status | filterTagName}}</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作" header-align="center" fixed="right" align="center">
+                    <!-- 状态 00-未确定 22-确定 55-启用 77-禁用 99-逻辑删除 -->
+                    <template slot-scope="scope">
+                        <el-button-group>
+                            <el-button type="primary" v-show="scope.row.ro_status === '00'" size="mini"
+                                @click="openEditWin(scope.index, scope.row)">编辑</el-button>
+                            <el-button type="primary" v-show="scope.row.ro_status === '00'" size="mini"
+                                @click="updateStatus(scope.row)">确定</el-button>
+                            <el-button type="primary"
+                                v-show="scope.row.ro_status === '22' || scope.row.ro_status === '77'" size="mini"
+                                @click="updateStatus(scope.row)">启用</el-button>
+                            <el-button type="primary" v-show="scope.row.ro_status === '55'" size="mini"
+                                @click="updateStatus(scope.row)">禁用</el-button>
+                            <el-button type="primary" size="mini" @click="execSingleDelete(scope.index, scope.row)">删除
+                            </el-button>
+                        </el-button-group>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <!-- 分页条 -->
+            <el-pagination background @size-change="pageSizeChange" @current-change="pageNumChange"
+                :current-page.sync="page.pageNum" :page-sizes="[5, 7, 10]" :page-size="5"
+                layout="sizes, prev, pager, next, jumper, ->, total" :total="page.total">
+            </el-pagination>
+        </el-card>
+
+        <!-- 权限详情表表格 -->
+        <el-dialog :title="authTitle" :visible.sync="anthTableVisible">
+            <el-button type="primary" size="mini" icon="el-icon-edit-outline" @click="addAuthWin"> 添加权限</el-button>
+            <el-button type="danger" size="mini" icon="el-icon-delete" @click="delAuthByBatch"> 批量删除</el-button>
+            <!-- 内置权限对话框 -->
+            <el-dialog width="50%" title="权限控制" :visible.sync="addAuthVisible" append-to-body>
+                
+                    <template>
+                            <el-checkbox :indeterminate="true" v-model="checkAll" @change="handleCheckAllChange">全选</el-checkbox>
+                            <div style="margin: 15px 0;"></div>
+                            <el-checkbox-group v-model="authArr" @change="handleCheckedCitiesChange">
+                                <el-checkbox v-for="auth in authOptions" :label="auth.m_id" :key="auth.m_name">{{auth.m_name}}</el-checkbox>
+                            </el-checkbox-group>
+                    </template>
+                    <div slot="footer" class="dialog-footer">
+                            <el-button @click="addAuthVisible = false">取 消</el-button>
+                            <el-button type="primary" @click="addAuth2Role">确 定</el-button>
+                    </div>
+            </el-dialog>
+            <el-table height="200" empty-text="没有权限信息！" :data="authData" @selection-change="selectAuths">
+                <el-table-column type="selection" width="55" fixed="left"></el-table-column>
+                <el-table-column property="authId" label="权限编号"></el-table-column>
+                <el-table-column property="authName" label="权限名称"></el-table-column>
+                <el-table-column property="" label="操作">
+                    <template slot-scope="scope">
+                        <el-button type="danger" size="mini" icon="el-icon-delete"
+                            @click="delAuth(authData.owner_id,scope.row.authId)"></el-button>
+
+                    </template>
+                </el-table-column>
+            </el-table>
+        </el-dialog>
+
+        <!-- 修改新增表单 -->
+        <el-dialog :visible.sync="visible">
+            <div slot="title">
+                <span>{{formTitle}}</span>
+            </div>
+            <el-form :model="dto">
+                <el-form-item label="角色名称" :label-width="'120px'">
+                    <el-input size="medium" v-model="dto.ro_name" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="角色备注" :label-width="'120px'">
+                    <el-input type="textarea" :rows="2" v-model="dto.ro_remark" autocomplete="off"></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer">
+                <el-button @click="visible = false">取 消</el-button>
+                <el-button type="primary" v-show="isAdd" @click="execAdd">提 交</el-button>
+                <el-button type="primary" v-show="!isAdd" @click="execUdp">提 交</el-button>
+            </div>
+        </el-dialog>
+
+
+
+    </div>
+
+    <script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+    <script src="../../element-ui/index.js"></script>
+    <script src="../../js/my.js"></script>
+
+    <script type="text/javascript">
+
+        const vm = new Vue({
+            el: "#app",
+            data: {
+                page: {}, // 页面对象
+                checkboxVals: [], // 多选框数据
+                queryObj: { // 查询参数
+                    pageSize: 5,
+                    pageNum: 1
+                },
+                isAdd: true, // 默认显示显示增加窗口的提交按钮
+                formTitle: "", // 新增（修改）时弹出框的标题
+                dto: {}, // 新增（修改）数据对象
+                visible: false, // 是否显示对话框
+                anthTableVisible: false, // 控制权限表格的显示
+                authTitle: '',// 权限表格头
+                authData: {}, // 权限数据
+                selectAuthVals: [], // 选中的权限列表
+                addAuthVisible: false, // 内置添加权限对话框
+                authOptions: [], // 下拉级联多选框的选项卡
+                authArr:[], // 选中的权限
+                checkAll:false, // 多选框全选
+                isIndeterminate: true
+            },
+            methods: {
+
+                // 获得页面对象
+                getPage(pageNum) { // 获得页面数据
+                    // 修改页码
+                    this.queryObj.pageNum = pageNum;
+                    this.$axios.get('/safty/role', {
+                        params: this.queryObj
+                    })
+                        .then(resp => {
+                            //console.log(resp);
+                            this.page = resp.data;
+                        })
+                        .catch(error => {
+                            console.log(error);
+                        });
+                },
+                // 执行查询操作
+                execQuery() {
+                    //console.log(this.queryObj);
+                    let tempSize = this.queryObj.pageSize; // 缓存之前的页面大小
+                    // 修改Size
+                    this.queryObj.pageSize = this.page.total;
+                    this.getPage(1);
+                    // 还原页面大小
+                    this.queryObj.pageSize = tempSize;
+                },
+
+                // 监听单选框操作
+                handleSelectionChange(val) {
+                    this.checkboxVals = val;
+                },
+
+                selectionChanged(val) {
+                    //console.log(val);
+                    // 修改查询参数
+                    this.queryObj.standard_status = val;
+                    // 刷新页面
+                    this.getPage(1);
+                },
+
+                // 打开增加窗口
+                openWinAdd() {
+                    this.dto = {} // 消除修改时的数据影响
+                    this.isAdd = true; // 激活增加提交按钮的功
+                    this.formTitle = "角色信息增加窗口"; // 修改窗口的标题
+                    this.visible = true // 显示窗口
+                },
+
+                // 打开修改窗口
+                openEditWin(index, row) {
+                    //console.log(index)
+                    //let rObj = row; // 解决表格数据记忆
+                    this.dto = this.$copyObj(row); // 消除修改时的数据影响
+                    this.isAdd = false; // 激活增加提交按钮的功
+                    this.formTitle = "角色信息修改窗口"; // 修改窗口的标题
+                    this.visible = true // 显示窗口
+                },
+
+                // 执行增加
+                execAdd() {
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '加载中...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    this.$axios.post("/safty/role", this.dto).then(resp => {
+                        console.log(resp);
+                        loading.close(); // 关闭加载框
+                        let res = resp.data;
+                        if (res.success) {
+                            this.visible = false; // 关闭弹窗
+                            this.getPage(this.page.pageTotal + 1); // 刷新页
+                            this.$message({
+                                message: res.message,
+                                type: 'success'
+                            });
+                        } else {
+                            this.$message({
+                                message: res.message,
+                                type: 'error'
+                            });
+                        }
+                    })
+                        .catch(error => {
+                            loading.close(); // 关闭加载框
+                            console.log(error);
+                        });
+                },
+                // 执行修改
+                execUdp() {
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '加载中...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    this.$axios.put("/safty/role", this.dto).then(resp => {
+                        console.log(resp);
+                        loading.close(); // 关闭加载框
+                        let res = resp.data;
+                        if (res.success) {
+                            this.visible = false; // 关闭弹窗
+                            this.getPage(this.page.pageNum); // 刷新当前页
+                            this.$message({
+                                message: res.message,
+                                type: 'success'
+                            });
+                        } else {
+                            this.$message({
+                                message: res.message,
+                                type: 'error'
+                            });
+                        }
+                    })
+                        .catch(error => {
+                            loading.close(); // 关闭加载框
+                            console.log(error);
+                        });
+
+                },
+                // 执行批量删除
+                execBatchDel() {
+                    if (this.checkboxVals.length == 0) {
+                        this.$message({
+                            showClose: true,
+                            message: '您没有选择数据！',
+                            type: 'error'
+                        });
+                        return;
+                    }
+
+                    let ids = [];
+                    for (let role of this.checkboxVals) {
+                        ids.push(role.ro_id);
+                    }
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '加载中...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    $axios.delete('/safty/role', { data: ids })
+                        .then(res => {
+                            loading.close();
+                            let result = res.data;
+                            if (result.success) {
+
+                                this.getPage(this.page.pageNum);
+                                this.$message({
+                                    message: result.message,
+                                    type: 'success'
+                                });
+                            } else {
+                                this.$message({
+                                    message: result.message,
+                                    type: 'error'
+                                });
+                            }
+                        })
+                        .catch(err => {
+                            loading.close();
+                            console.log(err);
+                        });
+                },
+
+                // 执行单删
+                execSingleDelete(index, row) {
+                    console.log(index, row);
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '加载中...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    this.$axios.delete(`/safty/role/${row.ro_id}`).then(resp => {
+                        console.log(resp);
+                        loading.close(); // 关闭加载框
+                        let res = resp.data;
+                        if (res.success) {
+                            this.getPage(this.page.pageNum); // 刷新当前页
+                            this.$message({
+                                message: res.message,
+                                type: 'success'
+                            });
+                        } else {
+                            this.$message({
+                                message: res.message,
+                                type: 'error'
+                            });
+                        }
+                    })
+                        .catch(error => {
+                            loading.close(); // 关闭加载框
+                            console.log(error);
+                        });
+                },
+                // 页面数据数量变化
+                pageSizeChange(size) {
+                    console.log(`每页 ${size} 条`);
+                    this.queryObj.pageSize = size; // 修改页面大小
+                    this.getPage(1); // 重新查询
+                },
+                // 当前页码
+                pageNumChange(currPage) {
+                    console.log(`当前页: ${currPage}`);
+                    this.queryObj.pageNum = currPage; // 修改页码
+                    this.getPage(currPage); // 重新查询
+                },
+
+                // 状态维护
+                updateStatus(row) {
+                    let stateStr = row.ro_id + '-' + Utils.stateMapper[row.ro_status]; // 获取需要修改的目标状态
+                    //console.log("修改的编号和对应的目标状态为："+stateStr);
+                    this.$axios.put(`/safty/role/${stateStr}`)
+                        .then((resp) => {
+                            let res = resp.data;
+                            if (res.success) {
+                                this.getPage(this.page.pageNum); // 刷新当前页
+                                this.$message({
+                                    message: res.message,
+                                    type: 'success'
+                                });
+                            } else {
+                                this.$message({
+                                    message: res.message,
+                                    type: 'error'
+                                });
+                            }
+                        })
+                        .catch((error) => { });
+                },
+
+                // 权限详情表格
+                authTable(scope) {
+                    // 显示权限表格
+                    this.anthTableVisible = true;
+                    // 设置表格头
+                    this.authTitle = scope.row.ro_name;
+                    // 绑定表格中的数据
+                    this.authData = scope.row.ro_auths;
+                    // 将当前角色的编号传递给对应的权限表格中的数据
+                    this.authData.owner_id = scope.row.ro_id;
+                    // 保存用户的状态
+                    this.authData.ro_status = scope.row.ro_status;
+                },
+
+                // 权限删除
+                delAuth(rId, authId) {
+                    //console.log(rId,authId);
+                    let delStr = rId + '-' + authId;
+                    console.log(delStr);
+                    // 执行删除操作
+                    this.$axios.delete(`/safty/role/auth/${delStr}`)
+                        .then((resp) => {
+                            let res = resp.data;
+                            if (res.success) {
+                                this.anthTableVisible = false // 权限表格
+                                this.getPage(this.page.pageNum);
+                                this.$message({
+                                    showClose: true,
+                                    message: res.message,
+                                    type: 'success'
+                                });
+                            } else {
+                                this.$message({
+                                    showClose: true,
+                                    message: res.message,
+                                    type: 'error'
+                                });
+                            }
+                        })
+                        .catch((error) => {
+                            console.log(error);
+                            this.$message({
+                                showClose: true,
+                                message: "出错了！",
+                                type: 'error'
+                            });
+                        })
+                },
+
+                // 打开添加权限窗口
+                addAuthWin() {
+                    // 检测角色的状态
+                    if(!(this.authData.ro_status === '22' 
+                        || this.authData.ro_status === '55')){
+                        this.$message({
+                                showClose: true,
+                                message: "不满足授权条件！",
+                                type: 'error'
+                            });
+                        return;
+                    }
+                    // 获取权限列表
+                    this.$axios.get('/safty/role/auth')
+                        .then((resp) => {
+                            let res = resp.data;
+                            if (res.success) {
+                                this.authArr = []; // 置空
+                                for (let index = 0; index < this.authData.length; index++) {
+                                    this.authArr.push(this.authData[index].authId)
+                                }
+                                    //console.log(this.authArr)
+                                 // 显示对话框
+                                this.addAuthVisible = true;
+                                this.authOptions = res.data;
+                                //this.authArr = this.authData;
+                                // 遍历数组
+                            } else {
+                                this.$message({
+                                    showClose: true,
+                                    message: res.message,
+                                    type: 'error'
+                                });
+                            }
+                        })
+                        .catch((error) => {
+                            console.log(error)
+                            this.$message({
+                                showClose: true,
+                                message: "出错了！",
+                                type: 'error'
+                            });
+                        })
+                    
+                },
+
+                handleCheckAllChange(val) { // 多选框全选
+                    if(val){
+                        this.authArr = [] // 置空
+                        for (let o of this.authOptions) {
+                                this.authArr.push(o.m_id);
+                            }
+                    }else{
+                        this.authArr = [] // 置空
+                    }
+                    this.isIndeterminate = false;
+                   // console.log(val);
+                },
+                handleCheckedCitiesChange(value) { // 多选框中的值发生改变的时候 
+                    let checkedCount = value.length;
+                    this.checkAll = checkedCount === this.authOptions.length;
+                    this.isIndeterminate = checkedCount > 0 && checkedCount < this.authOptions.length;
+                    console.log(value);
+                },
+
+                // 监听选中的数据
+                selectAuths(val) {
+                    //console.log(val)
+                    // 获取当前的权限拥有者id
+                    // console.log(this.authData.owner_id);
+                    let o_Id = this.authData.owner_id;
+                    let vals = []; // 存储处理后的数据
+                    // 对数据选中的数据进行处理
+                    for (let v of val) {
+                        let temp = o_Id + '-' + v.authId; // 对数据进行处理
+                        vals.push(temp);
+                    }
+                    this.selectAuthVals = vals;
+                    //console.log(this.selectAuthVals);
+                },
+
+                // 批量删除权限
+                delAuthByBatch() {
+                    if (this.selectAuthVals.length == 0) {
+                        this.$message({
+                            showClose: true,
+                            message: '请至少选择一条数据！',
+                            type: 'warning'
+                        });
+                        return;
+                    }
+
+                    // 发送删除请求
+                    this.$axios.delete('/safty/role/auth', { data: this.selectAuthVals })
+                        .then((resp) => {
+                            let res = resp.data;
+                            if (res.success) {
+                                this.anthTableVisible = false // 权限表格
+                                this.getPage(this.page.pageNum);
+                                this.$message({
+                                    showClose: true,
+                                    message: res.message,
+                                    type: 'success'
+                                });
+                            } else {
+                                this.$message({
+                                    showClose: true,
+                                    message: res.message,
+                                    type: 'error'
+                                });
+                            }
+                        })
+                        .catch((error) => {
+                            console.log(error)
+                            this.$message({
+                                showClose: true,
+                                message: "出错了！",
+                                type: 'error'
+                            });
+                        })
+
+                },
+
+                addAuth2Role(){
+                    // 关闭窗口
+                    this.addAuthVisible = false // 授权窗口
+                    this.anthTableVisible = false // 权限表格
+                    let dto = [];  // 传递数据
+                    // 获得增加权限角色的ID 
+                    let id = this.authData.owner_id;
+                    for(let s of this.authArr){ // 遍历格式化数据形式
+                        let temp = id + "-" + s
+                        dto.push(temp);                       
+                    }     
+                    console.log(dto);
+                    // 发送请求到后台
+                    this.$axios.post("/safty/role/auth",dto)
+                            .then((resp) => {
+                                    let res = resp.data;
+                                    if (res.success) {
+                                        this.getPage(this.page.pageNum);
+                                        this.$message({
+                                            showClose: true,
+                                            message: res.message,
+                                            type: 'success'
+                                        });
+                                    } else {
+                                        this.$message({
+                                            showClose: true,
+                                            message: res.message,
+                                            type: 'error'
+                                        });
+                                    }
+                                })
+                                .catch((error) => {
+                                    console.log(error)
+                                    this.$message({
+                                        showClose: true,
+                                        message: "出错了！",
+                                        type: 'error'
+                                    });
+                                })
+                }
+
+            },
+            mounted() {
+                this.getPage(1); // 查询第一页
+            },
+            filters: {
+                // 依据状态码，渲染对应的tag类型
+                filterTagType(state) {
+                    //console.log(Utils.filterType);
+                    return Utils.filterType[state];
+                },
+                // 依据状态码，渲染对应的tag名称
+                filterTagName(state) {
+                    return Utils.filterName[state];
+                }
+            }
+        });
+
+
+    </script>
+</body>
+
+</html>

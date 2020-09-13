@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>宜染在线</title>
+    <link rel="stylesheet" href="../../../mint-ui/style.min.css">
+    <link rel="stylesheet" href="../../../css/font-awesome.min.css">
+    <style type="text/css">
+        html {
+            font-size: 100px;
+            /*设置长度单位rem标准。 注：rem与px都是长度宽度单位，px指一个像素是绝对单位，rem是相对单位，以html字体大小为1rem */
+            height: 100%;
+        }
+
+        body {
+            font-size: 0.16rem;
+            /*恢复浏览器默认字体大小设置*/
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            background-color: #F5F5F5;
+            /*浅灰色背景*/
+        }
+
+        .my-container {
+            box-sizing: border-box;
+            height: 100%;
+            width: 100%;
+            position: relative;
+
+        }
+
+        .my-title {
+            width: 100%;
+            text-align: center;
+
+            font-size: 0.4rem;
+            color: #DDDDDD;
+            text-shadow: 0.03rem 0.03rem 0.1rem #DDDDDD;
+            /*文字阴影*/
+            font-weight: bold;
+            letter-spacing: 0.05rem;
+            /*文字距离*/
+        }
+        /* 设置轮播图的大小 */
+        img{ 
+            height: 2rem;
+            width: 5rem;
+        }
+
+        /* 列表渲染 */
+        .list-item{
+            margin: 0.05rem 0 0 0; 
+            background-color: #DCDFE6; 
+            position: relative; 
+            width: 100%; 
+            padding: 0.05rem;
+        }
+
+        /* 每个分组对应的显示方式 */
+        .group-item{
+            display: flex; 
+            flex-direction:row; 
+            flex-wrap: nowrap;
+            /* justify-content :  space-between; */
+            padding:0 0 0 0.3rem;
+        }
+
+        /* 设置分组中的每个DIV的边界 */
+        .group-item > div{
+            padding-right: 0.25rem;
+            text-align: center;
+            /* margin-top: 0.02rem; */
+            height: 0.3rem;
+            line-height: 0.3rem
+        }
+
+
+        .dye {
+
+            font-size: 0.15rem;
+            margin:0.1rem 0;
+            border:1px solid #DDEEFF;
+            border-top-left-radius: 0.05rem;
+            border-top-right-radius: 0.05rem;
+
+        }
+
+        .dye-header {
+            border-top-left-radius: 0.05rem;
+            border-top-right-radius: 0.05rem;
+            line-height: 0.3rem;
+            height: 0.3rem;
+            padding: 0 0.05rem 0 0.05rem;
+            background-color: #DDEEFF;
+            color: #888888;
+
+            display: flex;
+            flex-direction: row;
+            justify-content:space-between;
+            align-items: center;
+        }
+
+        .dye-body {
+
+            padding: 0 0.05rem 0 0.05rem;
+            background-color: white;
+            color: #888888;
+
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+
+            flex: 1 1 auto;
+
+
+        }
+
+        .dye-body>div {
+            display: flex;
+            flex-direction: row;
+            flex: auto;
+
+            height: 0.26rem;
+            line-height: 0.26rem;
+            border-bottom:1px #F2F2F2 dashed;
+
+        }
+
+        .dye-body>div>label {
+            width: 30%;
+            min-width: 0.7rem;
+
+        }
+
+        .dye-opr {
+            background-color: white;         
+
+            text-align: right;
+            padding:0.05rem;
+
+        }
+
+    </style>
+</head>
+
+<body>
+    <div id="app" class="my-container">
+
+
+        <!-- 固定在头部 -->
+        <mt-header title="染色操作">
+                <div slot="left">
+                    <mt-button icon="back" @click.native="location.href = '../../home/index.html'">返回</mt-button>
+                    
+                </div>
+                <mt-button slot="right" icon="more"></mt-button>
+            </mt-header>
+
+            <mt-navbar v-model="selected">
+                    <mt-tab-item id="1">待染色</mt-tab-item>
+                    <mt-tab-item id="2">已染色</mt-tab-item>
+                    <mt-tab-item id="3">后工序</mt-tab-item>
+                  </mt-navbar>
+                  
+                  <!-- tab-container -->
+                  <mt-tab-container v-model="selected">
+                    <mt-tab-container-item id="1">
+                        <!-- 搜索框中的内容 -->
+                        <mt-field placeholder="请输入计划序号搜索" 
+                            style="margin-top: 0.05rem;" disableClear v-model="search" >
+                            <mt-button type="primary" class="fa fa-search" style="margin-left: 0.06rem;" @click="goSearch(1)"> 搜索</mt-button>
+                        </mt-field>
+                        
+                        <div v-for="n in 20" class="dye">
+                                <div class="dye-header">
+                                    <span>组号：123456{{n}}</span>
+                                    <!-- <span>计划号：B20190816164529</span> -->
+                                    <span>已前处理</span>
+                                </div>
+                                <div class="dye-body">
+                                    <div>
+                                        <label>所属计划：</label>
+                                        <span>B20190816164529</span>
+                                    </div>
+                                    <div>
+                                        <label>客户：</label>
+                                        <span>常州飞龙纺织品公司</span>
+                                    </div>
+                                    <div>
+                                        <label>规格：</label>
+                                        <span>C/C60*60 110*80 166'</span>
+                                    </div>
+                                    <div>
+                                        <label>花色号：</label>
+                                        <span>3567#玫红</span>
+                                    </div>
+                                    <div>
+                                        <label>前处理产量：</label>
+                                        <span>3566.8米</span>
+                                    </div>
+                                </div>
+                                <div class="dye-opr">
+                                    <mt-button  size="small" type="primary">详情</mt-button>
+                                    <mt-button  size="small" type="primary">完成</mt-button>
+                                </div>
+        
+                            </div>
+                      
+                    </mt-tab-container-item>
+
+                    <mt-tab-container-item id="2">
+                        <mt-field placeholder="请输入计划序号搜索" 
+                            style="margin-top: 0.05rem;" disableClear v-model="search" >
+                            <mt-button type="primary" class="fa fa-search" style="margin-left: 0.06rem;" @click="goSearch(2)"> 搜索</mt-button>
+                        </mt-field>
+
+                        <div v-for="n in 20" class="dye">
+                                <div class="dye-header">
+                                    <span>组号：123456{{n}}</span>
+                                    <!-- <span>计划号：B20190816164529</span> -->
+                                    <span>已染色</span>
+                                </div>
+                                <div class="dye-body">
+                                    <div>
+                                        <label>所属计划：</label>
+                                        <span>B20190816164529</span>
+                                    </div>
+                                    <div>
+                                        <label>客户：</label>
+                                        <span>常州飞龙纺织品公司</span>
+                                    </div>
+                                    <div>
+                                        <label>规格：</label>
+                                        <span>C/C60*60 110*80 166'</span>
+                                    </div>
+                                    <div>
+                                        <label>花色号：</label>
+                                        <span>3567#玫红</span>
+                                    </div>
+                                    <div>
+                                        <label>染色产量：</label>
+                                        <span>3566.8米</span>
+                                    </div>
+                                </div>
+                                <div class="dye-opr">
+                                    <mt-button  size="small" type="primary">详情</mt-button>
+                                </div>
+        
+                            </div>
+
+                    </mt-tab-container-item>
+
+                    <mt-tab-container-item id="3">
+                        <mt-field placeholder="请输入计划序号搜索" 
+                            style="margin-top: 0.05rem;" disableClear v-model="search" >
+                            <mt-button type="primary" class="fa fa-search" style="margin-left: 0.06rem;" @click="goSearch(2)"> 搜索</mt-button>
+                        </mt-field>
+
+                        <div v-for="n in 20" class="dye">
+                                <div class="dye-header">
+                                    <span>组号：123456{{n}}</span>
+                                    <!-- <span>计划号：B20190816164529</span> -->
+                                    <span>依据流程显示</span>
+                                </div>
+                                <div class="dye-body">
+                                    <div>
+                                        <label>所属计划：</label>
+                                        <span>B20190816164529</span>
+                                    </div>
+                                    <div>
+                                        <label>客户：</label>
+                                        <span>常州飞龙纺织品公司</span>
+                                    </div>
+                                    <div>
+                                        <label>规格：</label>
+                                        <span>C/C60*60 110*80 166'</span>
+                                    </div>
+                                    <div>
+                                        <label>花色号：</label>
+                                        <span>3567#玫红</span>
+                                    </div>
+                                    <div>
+                                        <label>染色产量：</label>
+                                        <span>3566.8米</span>
+                                    </div>
+                                    <div>
+                                            <label>当前环节产量：</label>
+                                            <span>3566.8米</span>
+                                    </div>
+                                </div>
+                                <div class="dye-opr">
+                                    <mt-button  size="small" type="primary">详情</mt-button>
+                                </div>
+        
+                            </div>
+
+                    </mt-tab-container-item>
+
+                  </mt-tab-container>
+
+                  
+
+    </div>
+
+    <script src="../../../js/vue.min.js"></script>
+    <script src="../../../js/axios.min.js"></script>
+    <script src="../../../mint-ui/index.js"></script>
+
+    <script>
+
+        const vm = new Vue({
+            el: '#app',
+            data: {
+                user:{ 
+                    u_name:'张三'
+                }, // 用户信息
+                selected:'1',
+                search:'', // 搜索框输入的值
+            },
+            methods: {
+                goSearch(tabId){ // 依据不同的Tab下的搜索框进行搜索
+                    console.log(typeof tabId);
+                }
+            },
+            mounted() {
+
+            },
+            filters:{
+                
+            },
+            watch: {
+                search(newVal,oldVal){
+                    /* console.log("新值："+newVal);
+                    console.log("旧值："+oldVal); */
+                }
+            },
+        });
+
+    </script>
+
+
+</body>
+
+</html>
+	

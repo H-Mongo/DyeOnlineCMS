@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>宜染在线</title>
+    <link rel="stylesheet" href="../../mint-ui/style.min.css">
+    <link rel="stylesheet" href="../../css/font-awesome.min.css">
+    <style type="text/css">
+        html {
+            font-size: 100px;
+            /*设置长度单位rem标准。 注：rem与px都是长度宽度单位，px指一个像素是绝对单位，rem是相对单位，以html字体大小为1rem */
+            height: 100%;
+        }
+
+        body {
+            font-size: 0.16rem;
+            /*恢复浏览器默认字体大小设置*/
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            background-color: #F5F5F5;
+            /*浅灰色背景*/
+        }
+
+        .my-container {
+            box-sizing: border-box;
+            height: 100%;
+            width: 100%;
+        }
+
+        .dye {
+
+            font-size: 0.15rem;
+            margin:0.1rem 0;
+            border:1px solid #DDEEFF;
+            border-top-left-radius: 0.05rem;
+            border-top-right-radius: 0.05rem;
+
+        }
+
+        .dye-header {
+            border-top-left-radius: 0.05rem;
+            border-top-right-radius: 0.05rem;
+            line-height: 0.3rem;
+            height: 0.3rem;
+            padding: 0 0.05rem 0 0.05rem;
+            background-color: #DDEEFF;
+            color: #888888;
+
+            display: flex;
+            flex-direction: row;
+            justify-content:space-between;
+            align-items: center;
+        }
+
+        .dye-body {
+
+            padding: 0 0.05rem 0 0.05rem;
+            background-color: white;
+            color: #888888;
+
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+
+            flex: 1 1 auto;
+
+
+        }
+
+        .dye-body>div {
+            display: flex;
+            flex-direction: row;
+            flex: auto;
+
+            height: 0.26rem;
+            line-height: 0.26rem;
+            border-bottom:1px #F2F2F2 dashed;
+
+        }
+
+        .dye-body>div>label {
+            width: 30%;
+            min-width: 0.7rem;
+
+        }
+
+        .dye-opr {
+            background-color: white;         
+           
+            text-align: right;
+            padding:0.05rem;
+
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="my-container">
+
+        <mt-header title="宜染在线">
+            <mt-button icon="back" slot="left" @click="backToHome">返回</mt-button>
+            <template slot="right">{{currUser.userName}}</template>
+        </mt-header>
+
+        <mt-navbar v-model="active">
+            <mt-tab-item id="1">待染色</mt-tab-item>
+            <mt-tab-item id="2">已染色</mt-tab-item>
+            <mt-tab-item id="3">后工序</mt-tab-item>
+        </mt-navbar>
+
+        <div
+            style="position:absolute;top:0.88rem;bottom:0;left:0;padding:0.05rem 0 0.05rem 0;width:100%;overflow: auto;">
+
+            <mt-tab-container v-model="active" style="width:96%;margin:0 auto;">
+                <mt-tab-container-item id="1">
+                    <div v-for="n in 20" class="dye">
+                        <div class="dye-header">
+                            <span>组号：123456{{n}}</span>
+                            <span>已前处理</span>
+                        </div>
+                        <div class="dye-body">
+                            <div>
+                                <label>客户：</label>
+                                <span>常州飞龙纺织品公司</span>
+                            </div>
+                            <div>
+                                <label>规格：</label>
+                                <span>C/C60*60 110*80 166'</span>
+                            </div>
+                            <div>
+                                <label>花色号：</label>
+                                <span>3567#玫红</span>
+                            </div>
+                            <div>
+                                <label>前处理产量：</label>
+                                <span>3566.8米</span>
+                            </div>
+                        </div>
+                        <div class="dye-opr">
+                            <mt-button  size="small" type="primary">详情</mt-button>
+                            <mt-button  size="small" type="primary">完成</mt-button>
+                        </div>
+
+                    </div>
+                </mt-tab-container-item>
+                <mt-tab-container-item id="2">
+
+                </mt-tab-container-item>
+                <mt-tab-container-item id="3">
+
+                </mt-tab-container-item>
+            </mt-tab-container>
+
+        </div>
+
+
+
+    </div>
+
+    <script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+    <script src="../../mint-ui/index.js"></script>
+    <script src="../../layer_mobile/layer.js"></script>
+    <script src="../../js/my-mobile.js"></script>
+
+
+    <script>
+        const vm = new Vue({
+            el: '#app',
+            data: {
+
+                active: '1',
+
+                currUser: {},
+
+
+
+            },
+            methods: {
+
+                backToHome() {
+                    location.href = '../../safty/home/index.html';
+                },
+
+
+            },
+            mounted() {
+
+                this.$myGet('/safty/home/currUser')
+                    .then(curruser => {
+                        this.currUser = curruser;
+                    });
+
+
+            }
+        });
+    </script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>宜染在线</title>
+    <link rel="stylesheet" href="../../mint-ui/style.min.css">
+    <link rel="stylesheet" href="../../css/font-awesome.min.css">
+    <style type="text/css">
+        html {
+            font-size: 100px;
+            /*设置长度单位rem标准。 注：rem与px都是长度宽度单位，px指一个像素是绝对单位，rem是相对单位，以html字体大小为1rem */
+            height: 100%;
+        }
+
+        body {
+            font-size: 0.16rem;
+            /*恢复浏览器默认字体大小设置*/
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            background-color: #F5F5F5;
+            /*浅灰色背景*/
+        }
+
+        .my-container {
+            box-sizing: border-box;
+            height: 100%;
+            padding: 0.1rem;
+
+        }
+
+        .my-title {
+            width: 100%;
+            text-align: center;
+
+            font-size: 0.4rem;
+            color: #DDDDDD;
+            text-shadow: 0.03rem 0.03rem 0.1rem #DDDDDD;
+            /*文字阴影*/
+            font-weight: bold;
+            letter-spacing: 0.05rem;
+            /*文字距离*/
+        }
+        /* 设置轮播图的大小 */
+    </style>
+</head>
+
+<body>
+    <div id="app" class="my-container">
+
+
+        <!-- 固定在头部 -->
+        <mt-header title="个人中心">
+            <div slot="left">
+                <mt-button icon="back" @click.native="location.href = '../home/index.html'">返回</mt-button>
+        
+            </div>
+            <mt-button icon="more" slot="right" ></mt-button>
+        </mt-header>
+            
+        <!-- 用户信息展示 -->
+        <div style="margin-top: 0.1rem;">
+            <mt-cell title="头像">
+                <img src="../../assets/tx.jpeg" width="50px" height="50px"></img>
+            </mt-cell>
+        </div>
+        <div style="margin-top: 0.1rem;">
+            <mt-cell title="基本信息"></mt-cell>
+            <mt-cell title="用户名" value="张三" style="padding:0 0.1rem 0 0.2rem;"></mt-cell>
+            <mt-cell title="职位名称" value="测试人员" style="padding:0 0.1rem 0 0.2rem;"></mt-cell>
+            <mt-cell title="入职时间" value="2019-8-18" style="padding:0 0.1rem 0 0.2rem;"></mt-cell>
+        </div>
+        <div style="margin-top: 0.1rem;">
+            <mt-cell title="兴趣爱好"></mt-cell>
+            <mt-cell title="特长" value="唱歌、跳舞" is-link style="padding:0 0.1rem 0 0.2rem;"></mt-cell>
+            <mt-cell title="兴趣" value="写代码" is-link style="padding:0 0.1rem 0 0.2rem;"></mt-cell>
+            <mt-cell title="个人宣言" value="一切皆有可能" is-link style="padding:0 0.1rem 0 0.2rem;"></mt-cell>
+        </div>
+        <div style="margin-top: 0.1rem;">
+            <mt-cell title="安全设置"></mt-cell>
+            <mt-cell title="修改密码" style="padding:0 0.1rem 0 0.2rem;" to="../password/index.html" is-link></mt-cell>
+            <mt-cell title="退出登录" style="padding:0 0.1rem 0 0.2rem;" @click.native="sheetVisible = true" is-link></mt-cell>
+        </div>
+        <!-- 下拉框 -->
+        <mt-actionsheet
+            :actions="actions"
+            v-model="sheetVisible">
+        </mt-actionsheet>
+
+    </div>
+
+    <script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+    <script src="../../mint-ui/index.js"></script>
+    <script src="../../layer_mobile/layer.js"></script>
+    <script src="../../js/my-mobile.js"></script>
+
+    <script>
+
+        const vm = new Vue({
+            el: '#app',
+            data: {
+                user:{ 
+                    u_name:'张三'
+                }, // 用户信息
+                sheetVisible:false, // 控制点击退出登陆时的弹窗显示
+                popupVisible:false, // 控制点击密码修改时的弹出层位置
+                actions:[{ 
+                    name:"退出",
+                    method:()=>{
+                        /* this.Vue.$toast("已退出!"); */
+                        /* console.log(this.Vue.delete) */
+                        // 向后台发送退出请求
+                        this.Vue.prototype.$axios.delete("/safty/home/logout")
+                            .then((resp) => {
+                                let res = resp.data;
+                                if(res.success){ //成功退出
+                                    const instance = this.Vue.$toast({
+                                        message: res.message,
+                                        position: 'middle',
+                                    /*  duration: 3000 */
+                                    });
+                                    setTimeout(() =>{
+                                        instance.close(); // 关闭提示
+                                        top.location.href = "../login/index.html";
+                                    },3000);
+
+                                    return;
+                                } else {
+                                    this.Vue.$toast({
+                                        message: res.message,
+                                        position: 'bottom',
+                                        duration: 3000
+                                    });
+                                    return;
+                                }
+                            }).catch((err) => {
+                                console.log(err);
+                                this.Vue.$toast({
+                                        message: "服务器未响应！",
+                                        position: 'bottom',
+                                        duration: 3000
+                                    });
+                                    return;
+                            });
+                        }
+                        
+                    }
+                ], // 退出框中的内容
+                pwdObj:{}, // 修改密码绑定的对象
+            },
+            methods: {
+                
+            },
+            mounted() {
+
+            },
+            filters:{
+                
+            }
+        });
+
+    </script>
+
+
+</body>
+
+</html>
+	

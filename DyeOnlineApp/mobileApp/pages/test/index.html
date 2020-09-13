@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>宜染在线</title>
+    <link rel="stylesheet" href="../../mint-ui/style.min.css">
+    <link rel="stylesheet" href="../../css/font-awesome.min.css">
+    <style type="text/css">
+        html {
+            font-size: 100px;
+            /*设置长度单位rem标准。 注：rem与px都是长度宽度单位，px指一个像素是绝对单位，rem是相对单位，以html字体大小为1rem */
+            height: 100%;
+        }
+
+        body {
+            font-size: 0.16rem;
+            /*恢复浏览器默认字体大小设置*/
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            background-color: #F5F5F5;
+            /*浅灰色背景*/
+        }
+
+        .my-container {
+            box-sizing: border-box;
+            height: 100%;
+            width: 100%;
+            position: relative;
+
+
+        }
+
+        .my-menu {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+            width: 49%;
+            height: 1rem;
+            background-color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="my-container">
+
+        <mt-header title="宜染在线">
+            <mt-button icon="back" slot="left" @click="backToLogin">返回</mt-button>
+            <template slot="right">{{currUser.userName}}</template>
+        </mt-header>
+
+        <div style="position:absolute;top:0.4rem;bottom:0.55rem;left:0;width:100%;overflow: auto;">
+
+            <mt-tab-container v-model="active">
+
+                <mt-tab-container-item id="home">
+
+                    <mt-cell v-for="menu in menuList" :title="menu.menuName" :to="'../..'+menu.menuUrl" is-link>
+                    </mt-cell>
+
+                </mt-tab-container-item>
+
+                <mt-tab-container-item id="mine">
+
+                    <div
+                        style="width:96%;margin: 0.1rem auto 0.1rem;display:flex;flex-direction: row;justify-content:space-between; ">
+                        <div class="my-menu">
+                            <i class="fa fa-key fa-lg"></i>
+                            密码修改
+                        </div>
+
+                        <div class="my-menu" @click="logout">
+                            <i class="fa fa-sign-out fa-lg"></i>
+                            退出
+                        </div>
+                    </div>
+                </mt-tab-container-item>
+
+            </mt-tab-container>
+
+        </div>
+
+        <mt-tabbar v-model="active">
+            <mt-tab-item id="home">
+                <i slot="icon" class="fa fa-home fa-lg"></i>
+                主页
+            </mt-tab-item>
+
+            <mt-tab-item id="mine">
+                <i slot="icon" class="fa fa-user fa-lg"></i>
+                我的
+            </mt-tab-item>
+        </mt-tabbar>
+
+
+    </div>
+
+    <script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+    <script src="../../mint-ui/index.js"></script>
+    <script src="../../layer_mobile/layer.js"></script>
+    <script src="../../js/my-mobile.js"></script>
+
+
+    <script>
+        const vm = new Vue({
+            el: '#app',
+            data: {
+
+                currUser: {},
+                active: 'home',
+                menuList: [],
+
+            },
+            methods: {
+
+                backToLogin() {
+                    location.href = '../../safty/login/index.html';
+                },
+                logout() {
+                    this.$myDelete('/safty/logout/exit')
+                        .then(() => {
+                            setTimeout(() => {
+                                top.location.href = '../../safty/login/index.html';
+                            }, 1000);
+                        });
+                },
+
+            },
+            mounted() {
+
+                this.$myGet('/safty/home/currUser')
+                    .then(curruser => {
+                        this.currUser = curruser;
+                    });
+
+                this.$myGet('/safty/home/m-menu')
+                    .then(menuList => {
+                        this.menuList = menuList;
+                    });
+            }
+        });
+    </script>
+
+
+</body>
+
+</html>

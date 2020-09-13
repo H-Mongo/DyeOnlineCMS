@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>登录页面</title>
+
+	<!-- 此处设置对移动端页面开发很重要，该设置确保页面与设备相适应 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="/element-ui/theme-chalk/index.css">
+    
+    <style type="text/css">
+    	
+    	/* #app{
+			position: relative;
+			display: block;
+			top: 50%;
+			right: 50%;
+			width: 500px;
+			height: 500px;
+			margin-top: -250px;
+			margin-right: -250px;
+    	} */
+    
+    </style>
+    
+    
+</head>
+<body>
+
+	<div id="app" >
+		
+		  		<el-form :model="user" ref="loginForm" label-width="100px" >
+					  <el-form-item
+					    prop="u_name"
+					    label="用户名" :rules="[
+	      { required: true, message: '请输入用户名', trigger: 'blur' },
+	      { min: 3, max: 5, message: '长度在 3 到 5 个字符', trigger: ['blur', 'change'] }
+	    ]">
+					    <el-input type="text" v-model="user.u_name"></el-input>
+					  </el-form-item>
+					  
+					  <el-form-item prop="u_pwd" label="密码" :rules="[
+	      { required: true, message: '请输入密码', trigger: 'blur' },
+	      { min: 3, max: 5, message: '长度在 3 到 5 个字符', trigger: ['blur', 'change'] }
+	    ]">
+					    <el-input type="password" v-model="user.u_pwd" autocomplete="off"></el-input>
+					  </el-form-item>
+					
+					  <el-form-item>
+					    <el-button type="primary" @click.prevent="submitForm('loginForm')">登录</el-button>
+					    <el-button @click.prevent="resetForm('loginForm')">重置</el-button>
+					  </el-form-item>
+					</el-form>
+			
+			
+	</div>
+
+
+ 
+
+	<script src="/js/vue.min.js"></script>
+    <script src="/js/axios.min.js"></script>
+    <script src="/element-ui/index.js"></script>
+    
+    <script type="text/javascript">
+    
+    
+    	const vm = new Vue({
+    		el:"#app",
+    		data:{
+    			user: {}
+    		},
+    		methods:{
+    			// 重置表单
+    			resetForm(formName){
+    			 // 重置表单中的数据
+    			 this.$refs[formName].resetFields();
+    			},
+    			// 提交表单
+    			submitForm(formName) {
+    		        this.$refs[formName].validate((valid) => { // 提交时对表单中的信息 进行验证
+    		          if (valid) { // 验证通过
+    		        	 
+    		    	   console.log(this.user); 
+    		        	  
+    		           // 使用axios提交数据
+    		           axios.post("/safty/login", this.user)
+    		           .then((response) => {
+    		        	    console.log(response);
+    		        	  }).catch((error) => {
+    		        	    console.log(error);
+    		        	    alert("出错了！");
+    		        	  });
+    		    	   
+    		          } else { // 验证不通过
+    		            console.log('error submit!!');
+    		            return false;
+    		          }
+    		        });
+    		       
+    		        //return false; // 阻止表单默认行为
+    		      }
+    		}
+    	});
+    
+    
+    </script>
+    
+    
+</body>
+</html>

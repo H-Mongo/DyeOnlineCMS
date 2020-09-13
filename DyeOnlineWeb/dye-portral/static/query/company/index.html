@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>全厂日报</title>
+    <!-- 此处设置对移动端页面开发很重要，该设置确保页面与设备相适应 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="../../element-ui/theme-chalk/index.css">
+
+    <style type="text/css">
+       /*  .el-input {
+            width: 160px;
+        } */
+
+        .el-card__header {
+            box-sizing: border-box;
+            padding: 18px 20px 0px;
+            border-bottom: 1px solid rgb(235, 238, 245);
+        }
+
+        /* 设置弹出对话框中的分组信息的样式 */
+        .group-info{
+            margin-top: 10px;
+            margin-bottom: 10px;
+            padding-left: 10px;
+            color: #909399;
+            font-weight: bolder;
+        }
+
+        .group-label{
+            color: #606266;
+            font-weight: bolder;
+            font-size: 16px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div id="app">
+
+        <el-card class="box-card" :body-style="{ padding: '5px', margin: '0px'}">
+            <!-- 卡片头显示的内容 -->
+            <div slot="header" class="clearfix">
+                <!-- 查询表单 -->
+                <el-form :inline="true" :model="queryObj">
+
+                    <el-form-item label="组号">
+                            <el-input v-model="queryObj.process_id" placeholder="请输入分组号" clearable></el-input>
+                    </el-form-item>
+
+                    <el-form-item label="商品号">
+                        <el-input v-model="queryObj.product_id" placeholder="请输入商品号" clearable></el-input>
+                    </el-form-item>
+
+                    <el-form-item label="成品量">
+                            <el-col :span="11">
+                                <el-input type.native="number" placeholder="起始量" v-model="queryObj.startNum" style="width: 100%;"></el-input>
+                            </el-col>
+                            <el-col class="line" :span="2">&nbsp;&nbsp;至</el-col>
+                            <el-col :span="11">
+                                <el-input type.native="number" placeholder="结束量" v-model="queryObj.endNum" style="width: 100%;"></el-input>
+                            </el-col>
+                    </el-form-item>
+
+                    <el-form-item>
+                        <el-button type="primary" size="small" @click.prevent="execQuery" icon="el-icon-search">查询
+                        </el-button>
+                    </el-form-item>
+                </el-form>
+
+            </div>
+
+            <!-- 表格内容 -->
+            <el-table :data="page.rows" stripe style="width: 100%" empty-text tooltip-effect="dark" >
+                <el-table-column type="selection" width="55" fixed="left">
+                </el-table-column>
+                <el-table-column header-align="center" width="80" align="center" prop="" label="序号">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="plan_xh" label="订单号">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="standard_name" label="规格">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="groups_num" label="投坯量（米）">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="products_num" label="成品量（米）">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="first_grade" label="一等品（米）">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="second_grade" label="二等品（米）">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="third_grade" label="三等品（米）">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="not_grade" label="等外品（米）">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="pass_rate" label="合格率">
+                </el-table-column>
+            </el-table>
+            <!-- 分页条 -->
+           <!--  <el-pagination background @size-change="pageSizeChange" @current-change="pageNumChange"
+                :current-page.sync="page.pageNum" :page-sizes="[5, 7, 10]" :page-size="5"
+                layout="sizes, prev, pager, next, jumper, ->, total" :total="page.total">
+            </el-pagination> -->
+        </el-card>
+
+    </div>
+
+
+    <script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+    <script src="../../element-ui/index.js"></script>
+    <script src="../../js/my.js"></script>
+
+    <script type="text/javascript">
+
+
+
+        const vm = new Vue({
+            el: "#app",
+            data: {
+                page: {}, // 页面对象
+                queryObj: { // 查询参数
+                    pageSize: 5,
+                    pageNum: 1,
+                },
+            },
+            methods: {
+
+                // 获得页面对象
+                getPage(pageNum) { // 获得页面数据
+                    // 修改页码
+                    this.queryObj.pageNum = pageNum;
+                    console.log(this.queryObj);
+                    this.$axios.get('/query/company/report', {
+                        params: this.queryObj
+                    }).then(resp => {
+                            console.log(resp);
+                            this.page = resp.data;
+                            // this.getPlanListAndTypes(); // 查询计划和类型
+                        })
+                        .catch(error => {
+                            console.log(error);
+                        });
+                },
+                // 执行查询操作
+                execQuery() {
+                    //console.log(this.queryObj);
+                    let tempSize = this.queryObj.pageSize; // 缓存之前的页面大小
+                    // 修改Size
+                    this.queryObj.pageSize = this.page.total;
+                    this.getPage(1);
+                    // 还原页面大小
+                    this.queryObj.pageSize = tempSize;
+                },
+                
+            },
+            mounted() {
+               
+                this.getPage(1); // 查询第一页
+
+            },
+            
+        });
+
+
+    </script>
+</body>

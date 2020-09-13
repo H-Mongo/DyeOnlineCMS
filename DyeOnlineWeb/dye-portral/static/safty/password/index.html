@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>宜染在线主页</title>
+    <!-- 此处设置对移动端页面开发很重要，该设置确保页面与设备相适应 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="../../element-ui/theme-chalk/index.css">
+
+    <style type="text/css">
+        html,body{
+            width: 100%;
+            height: 100%;
+        }
+        a{
+            color: white;
+            text-decoration-line: none;
+        }
+        a:hover{
+            color: orange;
+        }
+
+        .app{
+            width: 100%;
+            height: 100%;
+        }
+
+        .el-footer{
+            background-color: silver;
+            height: 30px;
+        }
+        .el-header{
+            height: 100px;
+            background-color:#606266
+        }
+        .el-aside{
+            background-color:  #545c64
+        }
+
+        .el-menu-item{
+            
+            width:150px;
+        }
+
+        #app{
+            position:fixed;
+            top:0;
+            bottom:0;
+            left:0;
+            right:0;
+        }
+  
+    </style>
+
+</head>
+<body>
+
+
+    <div id="app" class="app">
+
+            <!-- 修改密码弹出框 -->
+            <el-dialog
+                title="密码修改窗口"
+                :visible.sync="udpPwdDialogVisible"
+                width="30%"
+                center>
+                <div>
+                        <el-form :model="pwdObj" status-icon :rules="rules" ref="pwdObj" label-width="100px" class="demo-pwdObj">
+                                <el-form-item label="旧密码" prop="oldPwd">
+                                        <el-input type="password" v-model="pwdObj.oldPwd" autocomplete="off"></el-input>
+                                </el-form-item>
+                                <el-form-item label="新密码" prop="newPwd">
+                                  <el-input type="password" v-model="pwdObj.newPwd" autocomplete="off"></el-input>
+                                </el-form-item>
+                                <el-form-item label="确认密码" prop="checkNewPwd">
+                                  <el-input type="password" v-model="pwdObj.checkNewPwd" autocomplete="off"></el-input>
+                                </el-form-item>
+                                <el-form-item>
+                                  <el-button type="primary" @click="submitUdpPwd('pwdObj')">提交</el-button>
+                                  <el-button @click="resetForm('pwdObj')">重置</el-button>
+                                </el-form-item>
+                              </el-form>
+                </div>
+
+    </div>
+
+
+
+    <script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+    <script src="../../element-ui/index.js"></script>
+    <script src="../../js/my.js"></script>
+    
+
+    <script type="text/javascript">
+
+
+                    
+
+
+      const vm = new Vue({
+            el:'#app',
+            data:{
+                currUser:{
+                    u_id: 0,
+                    u_name: '',
+                }, // 用户信息
+                pwdObj: {
+                    oldPwd: '',
+                    newPwd: '',
+                    checkNewPwd: ''
+                },
+                rules: { // 绑定检验规则
+                        oldPwd: [
+                            { validator: this.validateOldPwd, trigger: 'blur' }
+                        ],
+                        newPwd: [
+                            { validator: this.validateNewPwd, trigger: 'blur' }
+                        ],
+                        checkNewPwd: [
+                            { validator: this.validateConfirmPwd, trigger: 'blur' }
+                        ],
+                    }, // 校验规则
+                udpPwdDialogVisible: false // 修改密码对话框的弹出
+            },
+            methods: {
+                handleSelect(key, keyPath) { // 选中后跳转页面
+                    window.showFrame.location.href = `../..${key}`;
+                },
+                
+                // 退出登录
+                logout(){
+                   let uId = this.currUser.u_id; // 获得登录用户的ID
+                   if(uId){ // 没有登录信息
+                        // 向服务器发出退出登录的请求
+                        this.$axios.delete(`/safty/home/logout`)
+                            .then((resp) => {
+                                let res = resp.data;
+                                if(res.success){ // 退出成功
+                                    // 销毁客户端保存的用户信息
+                                    //window.localStorage.removeItem("USER");
+                                    this.$message({
+                                        message: res.message + '2秒后自动前往登录页面...',
+                                        type: 'success'
+                                    });
+                                    // 延时跳转到登录页面
+                                    setTimeout(() => {
+                                        // 登录成功完成页面跳转
+                                        window.location.href = "../login/index.html"; // 前往首页
+								}, 2000);
+                                }
+                            }).catch((err) => {
+                                console.log(err);
+                            });
+                   } else { // 无用户信息
+                        this.$message({
+                            message: "未登录",
+                            type: 'warning'
+                        });
+                   }
+                },
+
+                validateOldPwd(rule, value, callback){ // 校验旧密码
+                        if (value === '') {
+                            callback(new Error('请输入旧密码'));
+                        } else {
+                        if (this.pwdObj.newPwd !== '' || this.pwdObj.checkNewPwd !== '') {
+                            this.$refs.pwdObj.validateField('newPwd');
+                            this.$refs.pwdObj.validateField('checkNewPwd');
+                        }
+                            callback();
+                        }
+                    },
+                    validateNewPwd(rule, value, callback){ // 校验新密码
+                        if (value === '') {
+                            callback(new Error('请输入新密码'));
+                        } else {
+                        if (this.pwdObj.newPwd !== '') {
+                            this.$refs.pwdObj.validateField('checkNewPwd');
+                        }
+                            callback();
+                        }
+                    },
+                    validateConfirmPwd(rule, value, callback){ // 检验确认密码
+                        if (value === '') {
+                            callback(new Error('请再次输入密码'));
+                        } else if (value !== this.pwdObj.newPwd) {
+                            callback(new Error('两次输入密码不一致!'));
+                        } else {
+                            callback();
+                        }
+                    },
+                openUdpPwdWin(){ // 打开密码修改的窗口
+
+                     // 弹出对话框
+
+                },
+
+                // 验证修改密码的表单
+                submitUdpPwd(formName) {
+                    //console.log(this.currUser);
+                    this.$refs[formName].validate((valid) => {
+                    if (valid) { // 通过表单验证
+                        // alert('submit!');
+                        // 封装后台修改密码的数据信息
+                        console.log(this.pwdObj);
+                        console.log(this.currUser);
+                        const obj = {
+                            u_pwd: this.pwdObj.oldPwd, // 旧密码
+                            new_pwd: this.pwdObj.newPwd, // 新密码
+                            u_id: this.currUser.u_id // 用户的ID
+                        }
+                        console.log(obj)
+                        // 向后台发送密码修改的请求 
+                        this.$axios.put("/safty/home/password",obj)
+                            .then((resp) => {
+                                let res = resp.data;
+                                if(res.success){
+                                    this.udpPwdDialogVisible = false; // 关闭窗口
+                                    this.$message({
+                                        message: res.message,
+                                        type: 'success'
+                                    });
+                                } else {
+                                    this.$message.error(res.message);
+                                }
+                            }).catch((err) => {
+                                console.log(err);
+                                this.$message.error('出错了！');
+                            });
+
+                    } else {
+                        console.log('error submit!!');
+                        return false;
+                    }
+                    });
+                },
+
+                // 重置表单
+                resetForm(formName) {
+                    this.$refs[formName].resetFields();
+                }
+
+
+
+
+            },
+            mounted() {
+               /*  $axios.get("/safty/home/menu").then((resp) => {
+                    console.log(resp);
+                    this.menus = resp.data;
+                   
+
+                }).catch((err) => {
+                    console.log(err);
+                }) */
+                // 取出客户端保存的用户信息
+                //this.currUser = window.localStorage.getItem('USER');
+
+                // 取出服务器存放的Session数据
+                this.$axios.get("/safty/home/token")
+                    .then((resp) => {
+                        let res = resp.data;
+                        if(res.success){
+                            console.log(res);
+                            // 没有用户数据
+                            if(res.data === null){
+                                const loading = this.$loading({
+                                        lock: true,
+                                        text: res.message + '2秒后自动前往登录页面...',
+                                        spinner: 'el-icon-s-promotion',
+                                        background: 'rgba(0, 0, 0, 0.7)'
+                                    });
+                                     // 前去登录页面
+                                setTimeout(() => {
+                                    loading.close();
+                                    // 登录成功完成页面跳转
+                                    window.location.href = "../login/index.html"; // 前往首页
+                                }, 2000);
+                                return;
+                            }
+                            // 绑定用户信息到页面
+                            this.currUser.u_id = res.data.u_id;
+                            this.currUser.u_name = res.data.u_name;
+                            
+                             // 依据对应的用户信息渲染用户的菜单
+                            this.$axios.get(`/safty/home/menu/${this.currUser.u_id}`)
+                                    .then((resp) => {
+                                        let res = resp.data; // 获取响应的数据
+                                        // 判断用户是否登录
+                                        if(res.success){ // 登录成功
+                                            // 判断是否有菜单项
+                                            if(res.data.length != 0){ // 拥有对应的菜单信息
+                                                this.menus = res.data; // 绑定菜单信息
+                                                return;
+                                            }
+                                            this.$message("无查看权限！"); // 没有模块权限时给出对应的提示信息
+                                        } else {
+                                            const loading = this.$loading({
+                                                lock: true,
+                                                text: res.message + '2秒后自动前往登录页面...',
+                                                spinner: 'el-icon-s-promotion',
+                                                background: 'rgba(0, 0, 0, 0.7)'
+                                            });
+                                            // 前去登录页面
+                                            setTimeout(() => {
+                                                loading.close();
+                                                // 登录成功完成页面跳转
+                                                window.location.href = "../login/index.html"; // 前往首页
+                                            }, 2000);
+                                        }
+                                    }).catch((err) => {
+                                        console.log(err);
+                                    });
+
+                        } else {
+                            console.log("服务器没有Session数据");
+                        }
+                        
+                    }).catch((err) => {
+                        console.log(err);
+                    });
+
+            },
+            filters: {
+                filterName(val){
+                    if(val || (val != '')){
+                        return "欢迎您，" + val;
+                    }
+                    return "未登录";
+                }
+            }
+        })
+
+    </script>
+
+</body>
+</html>

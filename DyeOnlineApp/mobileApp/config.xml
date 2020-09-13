@@ -1,0 +1,16 @@
+<widget id="A6011543168642"  version="0.0.1">
+    <name>API Example</name>
+    <description>
+        API Example App.
+    </description>
+    <author email="developer@apicloud.com" href="//www.apicloud.com">
+        APICloud.SIR
+    </author>
+    <content src="index.html" />
+    <access origin="*" />
+    <preference name="windowBackground" value="#FFF" />
+    <permission name="call" />
+    <feature name="weiXin">
+        <param name="urlScheme" value="wx7779c7c063a9d4d9" />
+    </feature>
+</widget>

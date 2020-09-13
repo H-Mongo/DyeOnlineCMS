@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>宜染在线</title>
+    <link rel="stylesheet" href="../../../mint-ui/style.min.css">
+    <link rel="stylesheet" href="../../../css/font-awesome.min.css">
+    <style type="text/css">
+        html {
+            font-size: 100px;
+            /*设置长度单位rem标准。 注：rem与px都是长度宽度单位，px指一个像素是绝对单位，rem是相对单位，以html字体大小为1rem */
+            height: 100%;
+        }
+
+        body {
+            font-size: 0.16rem;
+            /*恢复浏览器默认字体大小设置*/
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            background-color: #F5F5F5;
+            /*浅灰色背景*/
+        }
+
+        .my-container {
+            box-sizing: border-box;
+            height: 100%;
+            width: 100%;
+            position: relative;
+
+        }
+
+        .my-title {
+            width: 100%;
+            text-align: center;
+
+            font-size: 0.4rem;
+            color: #DDDDDD;
+            text-shadow: 0.03rem 0.03rem 0.1rem #DDDDDD;
+            /*文字阴影*/
+            font-weight: bold;
+            letter-spacing: 0.05rem;
+            /*文字距离*/
+        }
+        /* 设置轮播图的大小 */
+        img{ 
+            height: 2rem;
+            width: 5rem;
+        }
+
+        /* 列表渲染 */
+        .list-item{
+            margin: 0.05rem 0 0 0; 
+            background-color: #DCDFE6; 
+            position: relative; 
+            width: 100%; 
+            padding: 0.05rem;
+        }
+
+        /* 每个分组对应的显示方式 */
+        .group-item{
+            display: flex; 
+            flex-direction:row; 
+            flex-wrap: nowrap;
+            /* justify-content :  space-between; */
+            padding:0 0 0 0.3rem;
+        }
+
+        /* 设置分组中的每个DIV的边界 */
+        .group-item > div{
+            padding-right: 0.25rem;
+            text-align: center;
+            /* margin-top: 0.02rem; */
+            height: 0.3rem;
+            line-height: 0.3rem
+        }
+
+
+        .dye {
+            font-size: 0.15rem;
+            margin:0.1rem 0.1rem 0 0.1rem;
+            border:1px solid #DDEEFF;
+            border-top-left-radius: 0.05rem;
+            border-top-right-radius: 0.05rem;
+        }
+
+        .dye-header {
+            border-top-left-radius: 0.05rem;
+            border-top-right-radius: 0.05rem;
+            line-height: 0.3rem;
+            height: 0.3rem;
+            padding: 0 0.05rem 0 0.05rem;
+            background-color: #DDEEFF;
+            color: #888888;
+
+            display: flex;
+            flex-direction: row;
+            justify-content:space-between;
+            align-items: center;
+        }
+
+        .dye-body {
+
+            padding: 0 0.05rem 0 0.05rem;
+            background-color: white;
+            color: #888888;
+
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+
+            flex: 1 1 auto;
+
+
+        }
+
+        .dye-body>div {
+            display: flex;
+            flex-direction: row;
+            flex: auto;
+            height: 0.26rem;
+            line-height: 0.26rem;
+            border-bottom:1px #F2F2F2 dashed;
+
+        }
+
+        .dye-body>div>label {
+            width: 30%;
+            min-width: 0.7rem;
+
+        }
+
+        .dye-opr {
+            background-color: white;         
+
+            text-align: right;
+            padding:0.05rem;
+
+        }
+
+    </style>
+</head>
+
+<body>
+    <div id="app" class="my-container">
+
+
+        <!-- 固定在头部 -->
+        <mt-header title="前处理操作">
+            <div slot="left">
+                <mt-button icon="back" @click.native="location.href = '../../home/index.html'">返回</mt-button>
+        
+            </div>
+            <mt-button slot="right" icon="more"></mt-button>
+            </mt-header>
+            <mt-navbar v-model="selected">
+                <mt-tab-item id="1">待前处理</mt-tab-item>
+                <mt-tab-item id="2">已前处理</mt-tab-item>
+                <mt-tab-item id="3">后工序</mt-tab-item>
+            </mt-navbar>
+                  
+                  <!-- tab-container -->
+                  <mt-tab-container v-model="selected" 
+                            v-infinite-scroll="loadMore"
+                            infinite-scroll-immediate-check="true"
+                            infinite-scroll-disabled="loading"
+                            infinite-scroll-distance="10">
+
+                    <mt-tab-container-item id="1">
+                        <!-- 搜索框中的内容 -->
+                        <mt-field placeholder="请输入计划序号搜索" 
+                            style="margin-top: 0.05rem;" disableClear v-model="queryObj.queryStr" >
+                            <mt-button type="primary" class="fa fa-search" style="margin-left: 0.06rem;" @click="goSearch(1)"> 搜索</mt-button>
+                        </mt-field>
+                        
+                        <div v-for="obj in pageData" class="dye">
+                                <div class="dye-header">
+                                    <span>组号：{{obj.process_id}}</span>
+                                    <!-- <span>计划号：B20190816164529</span> -->
+                                    <span>{{obj.statusName}}</span>
+                                </div>
+                                <div class="dye-body">
+                                    <div>
+                                        <label>所属计划：</label>
+                                        <span>{{obj.plan_xh}}</span>
+                                    </div>
+                                    <div>
+                                        <label>客户：</label>
+                                        <span>{{obj.cus_name}}</span>
+                                    </div>
+                                    <div>
+                                        <label>规格：</label>
+                                        <span>{{obj.standard_name}}</span>
+                                    </div>
+                                    <div>
+                                        <label>花色号：</label>
+                                        <span>{{obj.co_name}}</span>
+                                    </div>
+                                    <div>
+                                        <label>投坯产量：</label>
+                                        <span>{{obj.group_num}}</span>
+                                    </div>
+                                </div>
+                                <div class="dye-opr">
+                                    <mt-button  size="small" type="primary">详情</mt-button>
+                                    <mt-button  size="small" type="primary" @click="openPopupWin(obj.process_id)">完成</mt-button>
+                                </div>
+        
+                            </div>
+                    </mt-tab-container-item>
+                    <mt-tab-container-item id="2">
+                        <mt-field placeholder="请输入计划序号搜索" 
+                            style="margin-top: 0.05rem;" disableClear v-model="queryObj.queryStr" >
+                            <mt-button type="primary" class="fa fa-search" style="margin-left: 0.06rem;" @click="goSearch(2)"> 搜索</mt-button>
+                        </mt-field>
+
+                        <div v-for="obj in pageData" class="dye">
+                                <div class="dye-header">
+                                    <span>组号：{{obj.process_id}}</span>
+                                    <!-- <span>计划号：B20190816164529</span> -->
+                                    <span>{{obj.statusName}}</span>
+                                </div>
+                                <div class="dye-body">
+                                    <div>
+                                        <label>所属计划：</label>
+                                        <span>{{obj.plan_xh}}</span>
+                                    </div>
+                                    <div>
+                                        <label>客户：</label>
+                                        <span>{{obj.cus_name}}</span>
+                                    </div>
+                                    <div>
+                                        <label>规格：</label>
+                                        <span>{{obj.standard_name}}</span>
+                                    </div>
+                                    <div>
+                                        <label>花色号：</label>
+                                        <span>{{obj.co_name}}</span>
+                                    </div>
+                                    <div>
+                                        <label>前处理产量：</label>
+                                        <span>{{obj.pretreat_num}}</span>
+                                    </div>
+                                </div>
+                                <div class="dye-opr">
+                                    <mt-button  size="small" type="primary">详情</mt-button>
+                                </div>
+        
+                            </div>
+                    </mt-tab-container-item>
+                    
+                    <mt-tab-container-item id="3">
+                            <mt-field placeholder="请输入计划序号搜索" 
+                                style="margin-top: 0.05rem;" disableClear v-model="queryObj.queryStr" >
+                                <mt-button type="primary" class="fa fa-search" style="margin-left: 0.06rem;" @click="goSearch(2)"> 搜索</mt-button>
+                            </mt-field>
+    
+                            <div v-for="obj in pageData" class="dye">
+                                    <div class="dye-header">
+                                        <span>组号：{{obj.process_id}}</span>
+                                        <!-- <span>计划号：B20190816164529</span> -->
+                                        <span>{{obj.postProStatus}}</span>
+                                    </div>
+                                    <div class="dye-body">
+                                        <div>
+                                            <label>所属计划：</label>
+                                            <span>{{obj.plan_xh}}</span>
+                                        </div>
+                                        <div>
+                                            <label>客户：</label>
+                                            <span>{{obj.cus_name}}</span>
+                                        </div>
+                                        <div>
+                                            <label>规格：</label>
+                                            <span>{{obj.standard_name}}</span>
+                                        </div>
+                                        <div>
+                                            <label>花色号：</label>
+                                            <span>{{obj.co_name}}</span>
+                                        </div>
+                                        <div>
+                                            <label>前处理产量：</label>
+                                            <span>{{obj.pretreat_num}}</span>
+                                        </div>
+                                        <div>
+                                            <label>{{obj.postProStatus}}产量：</label>
+                                            <span>{{obj.postProNum}}</span>
+                                        </div>
+                                    </div>
+                                    <div class="dye-opr">
+                                        <mt-button  size="small" type="primary">详情</mt-button>
+                                    </div>
+            
+                                </div>
+                        </mt-tab-container-item>
+
+                  </mt-tab-container>
+
+                  <!-- 显示加载数据中 -->
+                  <div style="text-align: center; padding: 0.05rem;">
+                      <mt-spinner v-show="isLoading" color="#606266" type="triple-bounce"></mt-spinner>
+                  </div>
+
+                    <!-- 数据全部显示时，显示的内容 -->
+                    <div style="padding: 10px; margin-top: 0rem;">
+                        <mt-cell v-show="over" title="已到底部，没有更多信息..."></mt-cell>
+                    </div>
+                  
+        
+        <!--使用mint-ui的popup组件开发工作量录入弹出层-->
+        <mt-popup style="width:70%;" v-model="numWinVisible" popup-transition="popup-fade">
+     
+                <mt-header title="前处理量录入">
+                    <mt-button icon="back" slot="left" @click="numWinVisible=false"></mt-button>
+                </mt-header>
+                
+                <div style="width:96%; margin:0 auto; padding-top: 0.2rem;">
+                    <mt-field label="前处理量" placeholder="请输入前处理量" v-model="num"></mt-field>
+                    <div style="height:0.5rem;"></div>
+                    <mt-button type="primary" @click="finishedWork" size="large">提交</mt-button>
+                    <div style="height:0.05rem;"></div>
+                </div>
+           
+            </mt-popup>
+
+
+
+    </div>
+
+    <script src="../../../js/vue.min.js"></script>
+    <script src="../../../js/axios.min.js"></script>
+    <script src="../../../mint-ui/index.js"></script>
+    <script src="../../../layer_mobile/layer.js"></script>
+    <script src="../../../js/my-mobile.js"></script>
+
+    <script>
+
+        const vm = new Vue({
+            el: '#app',
+            data: {
+                selected: '1', // 默认选中第一个Tab
+                search:'', // 搜索框输入的值
+                queryObj:{
+                    pageNum: 0, // 初始页码
+                }, // 查询对象
+                pageTotal:'', // 总页数
+                pageData:[], // 页面数据
+                numWinVisible: false, // 任务量录入弹出层的可见性控制
+                num:'', // 录入的工作量
+                currGroupId: '', // 当前要完成登记的组编号
+                loading: false, // 控制是否无限滚动，若为真，则无限滚动不会被触发
+                over: false, // 控制数据加载完时的显示没有更多数据的提示信息
+                isLoading: false, // 是否正在加载数据
+            },
+            methods: {
+                goSearch(tabId){ // 依据不同的Tab下的搜索框进行搜索
+                    console.log("当前选中"+ this.selected);
+                    this.pageData = []; // 清除历史数据带来的幻象
+                    this.getCurrPage(); // 查询当前页数据
+                },
+
+                getCurrPage(){ //获取当前选中的页面
+                    //let currTab = this.selected; // 获取当前选中的Tab
+                    if(this.selected === '1'){ // 待处理
+                        this.getPageData("/process/pretreatment/groups/notHandle",this.queryObj);
+                        return;
+                    } else if (this.selected === '2') { // 已处理
+                        this.getPageData("/process/pretreatment/groups/handle",this.queryObj);
+                        return;
+                    } else if (this.selected === '3') { // 后工序
+                        this.getPageData("/process/pretreatment/groups/postProcess",this.queryObj);
+                        return;
+                    }
+                    console.log("没有对应的Tab项！");
+                },
+
+                getPageData(url,queryObj){ // 获得页面数据
+                    // 向服务器请求/页面数据
+                    this.$axios.get(url,{
+                        params: queryObj
+                    }).then((resp) => {
+                        console.log(resp.data)
+                        let res = resp.data; // 获得数据信息
+                        if(res.hasOwnProperty("success") && !res.success){
+                            const instance = this.$toast({
+                                message: '登录超时，请重新登录！',
+                                position: 'middle',
+                               /*  duration: 3000 */
+                            });
+                            setTimeout(() =>{
+                                instance.close(); // 关闭提示
+                                top.location.href = "../../login/index.html";
+                            },3000);
+                        }
+                        if(res.total === 0){ // 总记录数为0，则没有分页数据信息
+                            this.$toast({
+                                message: '无数据！',
+                                position: 'bottom',
+                                duration: 5000
+                            });
+                            return; // 终止方法
+                        }
+
+                        // 对新分页的数据追加到已经存在的数据后面
+                        const currData = res.rows; // 分页数据
+                        // 遍历追加
+                        for (let o of currData) {
+                            // 向已经存在的页面数据追加数据
+                            this.pageData.push(o);
+                        }
+
+                        this.pageTotal = res.pageTotal; // 绑定总页数
+                        
+                        if(res.pageNum === this.pageTotal){ // 已是最后一页的数据
+                                this.queryObj.pageNum = this.pageTotal; // 修改页码
+                                // this.getCurrPage(); // 执行查询
+
+                                this.isLoading = true; // 加载中
+                                setTimeout(() => {
+                                    this.isLoading = false; 
+                                    this.over = true; // 显示没有更多数据的提示
+                                }, 3000);
+
+                        } else {
+                            this.queryObj.pageNum = res.pageNum; // 绑定新的页码号，便于分页查询的使用
+                        }
+
+                        console.log("当前返回的页码：");
+                        console.log(this.queryObj.pageNum);
+                    }).catch((err) => {
+                        this.$toast({
+                                message: '服务器未响应！',
+                                position: 'bottom',
+                                duration: 5000
+                            });
+                            
+                        console.log(err);
+
+                    });
+
+                },
+
+                openPopupWin(id){ // 打开任务量的窗口，id为当前修改的任务量的组ID
+                    this.currGroupId = id; // 组编号
+                    console.log('当前选中的组编号:'+this.currGroupId);
+                    this.numWinVisible = true; // 设置工作量登记弹出层可见
+                },
+
+                finishedWork(){ // 完成任务量
+                    //console.log(this.num === '')
+                    if(isNaN(Number(this.num)) || Number(this.num) === 0){ // 判断输入的是否是一个数字
+                        this.$toast({
+                            message: "请输入数字！",
+                            position: 'bottom',
+                            duration: 5000
+                        });
+                       return; 
+                    }
+                    //console.log((typeof this.num)+this.num)
+                    let udpStr = this.currGroupId + '-' + this.num; // 定义路径变量，格式：组编号-对应的工作量
+                   // console.log(udpStr);
+                   // return;
+                    // 向服务器发送数据
+                    this.$axios.put(`/process/pretreatment/groups/${udpStr}`)
+                        .then((resp) => {
+                            let res = resp.data;
+                            if(res.success){
+                                this.$toast({
+                                    message: res.message,
+                                    position: 'bottom',
+                                    duration: 5000
+                                });
+                                this.currGroupId = ''; // 清空当前组编号的值，避免历史数据的污染
+                                this.numWinVisible = false; // 关闭窗口
+                                this.getCurrPage(); // 刷新页面
+                            return; // 终止方法
+                            } else {
+                                this.$toast({
+                                    message: res.message,
+                                    position: 'bottom',
+                                    duration: 5000
+                                });
+                            }
+                        }).catch((err) => {
+                            this.$toast({
+                                message: '服务器未响应！',
+                                position: 'bottom',
+                                duration: 5000
+                            });
+                            
+                            console.log(err);
+
+                        });
+                },
+
+                loadMore(){ // 无限滚动分页
+                    this.loading = true; // 暂时关闭无限滚动
+                    
+                    console.log("滚动加载的页码："+this.queryObj.pageNum);
+                    this.isLoading = true; // 加载中
+                    setTimeout(() => {
+                        // 判断目前已加载到分页页码是否已是最大页
+                        if(this.queryObj.pageNum === this.pageTotal){ // 已是最后一页的数据
+                                this.queryObjpageNum = this.pageTotal; // 修改页码
+                                console.log("查询对象最后一页：");
+                                console.log(this.queryObj)
+                                // this.getCurrPage(); // 执行查询
+                                this.over = true; // 显示没有更多数据的提示
+                                this.isLoading = false;  // 完成加载
+                                return;
+                        } else {
+                            this.queryObj.pageNum +=1; // 查询当前页的下一页数据
+                            console.log("查询对象：");
+                            console.log(this.queryObj);
+                            this.getCurrPage(); // 执行查询
+                            this.isLoading = false;  // 完成加载
+                        }
+                        
+                        // 开启无限滚动
+                        this.loading = false;
+                        
+                    }, 2500);
+
+
+                },
+
+
+            },
+            mounted() {
+                    this.getCurrPage(); // 查询页面数据，默认是待处理的页面
+            },
+            filters:{
+                
+            },
+            watch: {
+                selected(newVal,oldVal){
+                    console.log("新值："+newVal);
+                    console.log(this.loading)
+                   /*  console.log("旧值："+oldVal); */
+                    this.loading = false; // 新tab面板允许滚动
+                    this.over = false; // 显示没有更多数据
+                    // 通过监听Tab所绑定的值的化，动态修改对对应页面的数据
+                    this.queryObj.queryStr = ''; // 切换到新的Tab项时，将查询字符串置为空，避免历史数据的干扰
+                    this.queryObj.pageNum = 0; // 消除历史数据的影响
+                    this.pageData = []; // 清空页面数据，避免历史数据的污染
+                    this.getCurrPage(); // 调用方法查询
+                }
+            },
+        });
+
+    </script>
+
+
+</body>
+
+</html>
+	

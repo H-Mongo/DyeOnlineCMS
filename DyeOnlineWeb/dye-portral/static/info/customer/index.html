@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>宜染在线</title>
+    <link rel="stylesheet" href="../../element-ui/theme-chalk/index.css">
+</head>
+<body>
+<div id="app">
+<el-container>
+  <el-header><el-breadcrumb separator-class="el-icon-arrow-right">
+		  <el-breadcrumb-item >基础信息管理</el-breadcrumb-item>
+		  <el-breadcrumb-item>客户信息维护</el-breadcrumb-item></el-breadcrumb>
+		  </el-header>
+		  
+ 
+</el-container>
+		
+	
+		</el-breadcrumb>
+		 <el-main> 
+		 <el-form :inline="true" :model="query" > 
+		 <el-form-item label="客户编号">
+		<el-input v-model="query.cus_id" placeholder="客户编号"></el-input> 
+		</el-form-item> 
+		 <el-form-item label="客户姓名">
+		<el-input v-model="query.cus_name" placeholder="客户姓名"></el-input> 
+		</el-form-item> 
+		 <el-form-item label="客户备注">
+		<el-input v-model="query.cus_remark" placeholder="客户备注"></el-input> 
+		</el-form-item> 
+		<el-form-item label="客户状态"> 
+		<el-select v-model="query.cus_status"placeholder="客户状态"> 
+		<el-option label="未确定"value="00"></el-option>
+		 <el-option label="确定" value="22"></el-option>
+		 <el-option label="启用" value="55"></el-option>
+		 <el-option label="禁用" value="77"></el-option>
+		 <el-option label="逻辑删除" value="99"></el-option>
+		</el-select> </el-form-item>
+		 <el-form-item>
+		 <el-button type="primary" @click="getCustomerPage(1)" icon="el-icon-search">查询</el-button> </el-form-item>
+		  </el-form>
+		  <el-button type="primary"  @click="openCusAddWin" icon="el-icon-check" plain>新增</el-button>
+		  <el-button type="danger" @click="cusExecDel"icon="el-icon-delete" plain>删除</el-button>
+		  
+		<el-table :data="page.rows" height="350" border style="width: 100%" @selection-change="onSelectionChange">
+		<el-table-column type="selection" width="55">
+            </el-table-column>
+		<el-table-column prop="cus_id" label="客户编号" width="180" >
+		</el-table-column> <el-table-column prop="cus_name" label="客户名称" width="180" >
+		</el-table-column> <el-table-column prop="cus_remark" label="备注" width="180"> </el-table-column>
+		 <el-table-column prop="cus_status" label="客户状态"  width="180">
+		    <template slot-scope="scope">
+           <el-tag v-if="scope.row.cus_status==00" type="info">未确定</el-tag>
+           <el-tag v-if="scope.row.cus_status==22" type="">确定</el-tag>
+           <el-tag v-if="scope.row.cus_status==55" type="success">启用</el-tag>
+           <el-tag v-if="scope.row.cus_status==77" type="danger">禁用</el-tag>
+      </template>
+		 </el-table-column>
+		<el-table-column label="操作">
+      <template slot-scope="scope">
+        <el-button size="mini"  v-if="scope.row.cus_status==00" @click="CusUpstatus( scope.row)" type="primary" icon="el-icon-success" >确定</el-button>
+        <el-button size="mini"  v-if="scope.row.cus_status==22" @click="CusUpstatus( scope.row)" type="success" icon="el-icon-unlock">启用</el-button>
+        <el-button size="mini"  v-if="scope.row.cus_status==55" @click="CusUpstatus( scope.row)" type="danger" icon="el-icon-lock" >禁用</el-button>
+        <el-button size="mini"  v-if="scope.row.cus_status==77" @click="CusUpstatus( scope.row)" type="success" icon="el-icon-unlock">启用</el-button>
+        <el-button size="mini" @click="openCusUpwin( scope.row)" icon="el-icon-search">编辑</el-button>
+        <el-button size="mini" type="danger"  @click="cusDel( scope.row.cus_id)" icon="el-icon-delete">删除</el-button>
+      </template>
+    </el-table-column>
+    </el-table>
+		 <el-pagination
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :current-page.sync="page.pageNum"
+      :page-sizes="[3, 6, 8, 10]"
+      :page-size.sync="page.pageSize"
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="page.total">
+    </el-pagination>
+		 </el-main>
+		 
+		   <!-- 新增对话框 -->
+        <el-dialog title="新增客户信息" :visible.sync="cusAddWinVisible">
+            <el-form :model="newCus">
+                <el-form-item label="客户名称" :label-width="'120px'">
+                    <el-input v-model="newCus.cus_name" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="客户备注" :label-width="'120px'">
+                    <el-input v-model="newCus.cus_remark" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="客户状态" :label-width="'120px'"> 
+				   <el-select v-model="query.cus_status" placeholder="客户状态"> 
+				<el-option label="未确定"value="00"></el-option>
+				 <el-option label="确定" value="22"></el-option>
+				 <el-option label="启用" value="55"></el-option>
+				 <el-option label="禁用" value="77"></el-option>
+				 <el-option label="逻辑删除" value="99"></el-option>
+				</el-select> </el-form-item>
+
+            </el-form>
+            <div slot="footer">
+                <el-button @click="cusAddWinVisible = false">取 消</el-button>
+                <el-button type="primary" @click="cusExecAdd">确 定</el-button>
+            </div>
+        </el-dialog>
+       <!-- 修改对话框 -->
+        <el-dialog title="修改客户信息" :visible.sync="cusUpWinVisible">
+            <el-form :model="oldCus">
+                <el-form-item label="客户名称" :label-width="'120px'">
+                    <el-input v-model="oldCus.cus_name" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="客户备注" :label-width="'120px'">
+                    <el-input v-model="oldCus.cus_remark" autocomplete="off"></el-input>
+                </el-form-item>
+
+            </el-form>
+            <div slot="footer">
+                <el-button @click="cusUpWinVisible = false">取 消</el-button>
+                <el-button type="primary" @click="cusExecUp">确 定</el-button>
+            </div>
+        </el-dialog>
+	</div>
+   <script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+    <script src="../../element-ui/index.js"></script>
+    <script src="../../js/my.js"></script>
+  
+      <script>
+        //打开新增窗口
+      const openCusAddWin=function(){
+    	  this.cusAddWinVisible = true;
+      };
+      //新增窗口
+      const cusExecAdd=function(){
+    	  const loading=this.$loading({
+    		  lock:true,
+    		  text:'正在执行中...',
+    		  background:'rgba(0, 0, 0, 0.7)'
+    	  });
+    	  this.$axios.post('/info/customer/customer',this.newCus)
+    	       .then(res=>{
+    	    	   loading.close();
+    	    	   let result=res.data;
+    	    	   if(result.success){
+    	    		   this.cusAddWinVisible=false;
+    	    		   this.getCustomerPage(this.page.pageTotal+ 1);
+                       this.$message({
+                           message: result.message,
+                           type: 'success'
+                       });
+    	    	   }else{
+    	    		   this.$message({
+                           message: result.message,
+                           type: 'error'
+                       });
+    	    	   }
+    	       })
+    	       .catch(err=>{
+    	    	   loading.close();
+    	    	   console.log(err);
+    	       });
+    	  this.newCus={};
+      };
+      const openCusUpwin=function(oldCus){
+    	  this.oldCus=oldCus;
+    	  this.cusUpWinVisible=true;
+      };
+      //修改窗口
+      const cusExecUp=function(){
+    	  this.$axios.put('/info/customer/customer',this.oldCus)
+    	       .then(res=>{
+    	    	   let result=res.data;
+    	    	   if(result.success){
+    	    		   this.cusUpWinVisible=false;
+    	    		   this.getCustomerPage(this.page.pageNum);
+                       this.$message({
+                           message: result.message,
+                           type: 'success'
+                       });
+    	    	   }else{
+    	    		   this.$message({
+                           message: result.message,
+                           type: 'error'
+                       });
+    	    	   }
+    	       })
+    	       .catch(err=>{
+    	    	   console.log(err);
+    	       });
+    	  this.oldCus={};
+      };
+      //多选框
+      const onSelectionChange=function(arr){
+    	  this.checkedCuses=arr;
+      };
+      //多选删除
+      const cusExecDel=function(){
+    	  if(this.checkedCuses.length==0){
+              this.$message({
+                  showClose: true,
+                  message: '您没有选择数据！',
+                  type: 'error'
+              });
+              return;
+          }
+
+          let ids = [];
+          for(let cus of this.checkedCuses){
+              ids.push(cus.cus_id);
+          }
+          const loading = this.$loading({
+              lock: true,
+              text: '正在执行中...',
+              background: 'rgba(0, 0, 0, 0.7)'
+          });
+
+          this.$axios.delete('/info/customer/customer', {data:ids})
+              .then(res => {
+                  loading.close();
+                  let result = res.data;
+                  if (result.success) {
+                     
+                      this.getCustomerPage(this.page.pageNum);
+                      this.$message({
+                          message: result.message,
+                          type: 'success'
+                      });
+                  } else {
+                      this.$message({
+                          message: result.message,
+                          type: 'error'
+                      });
+                  }
+              })
+              .catch(err => {
+                  loading.close();
+                  console.log(err);
+              });   
+      }
+      //单选删除
+      const cusDel=function(cus_id){
+    	 this.$axios.delete(`/info/customer/customer/${cus_id}`)
+    	       .then(res=>{
+    	    	   let result=res.data;
+    	    	   if(result.success){
+    	    		   this.getCustomerPage(this.page.pageNum);
+                       this.$message({
+                           message: result.message,
+                           type: 'success'
+                       });
+    	    	   }else{
+    	    		   this.$message({
+                           message: result.message,
+                           type: 'error'
+                       });
+    	    	   }
+    	       })
+    	       .catch(err=>{
+    	    	   console.log(err);
+    	       });
+      }
+      //修改状态
+       const CusUpstatus=function(newCusStatus){
+    	  console.log(newCusStatus );
+    	   this.$axios.put('/info/customer/status',newCusStatus )
+	       .then(res=>{
+	    	   let result=res.data;
+	    	   if(result.success){
+	    		  
+	    		   this.getCustomerPage(this.page.pageNum);
+                   this.$message({
+                       message: result.message,
+                       type: 'success'
+                   });
+	    	   }else{
+	    		   this.$message({
+                       message: result.message,
+                       type: 'error'
+                   });
+	    	   }
+	       })
+	       .catch(err=>{
+	    	   console.log(err);
+	       });
+       } 
+      
+      
+      
+        let vm=new Vue({
+        	el:'#app',
+        	data:{
+        		 query: {
+                     pageNum: 1,
+                     pageSize: 5
+                 },
+                 page:{},
+                 cusAddWinVisible:false,
+                 newCus:{},
+                 cusUpWinVisible:false,
+                 oldCus:{},
+                 checkedCuses:[],
+               
+               
+                
+                
+        	      
+        	},
+        	methods:{
+        		getCustomerPage(PageNum){
+        			this.query.pageNum=PageNum;
+        			this.$axios.get("/info/customer/customer",{params:this.query})
+        			.then(res=>{
+        				this.page=res.data;
+        			})
+        			.catch(err=>{
+        				console.log(err);
+        			})
+        		},
+        		
+        		handleSizeChange(size){
+        			this.query.pageSize=size;
+        			this.getCustomerPage(1);
+        		},
+        		
+        		handleCurrentChange(pageNum){
+        			this.getCustomerPage(pageNum);
+        		},
+        		
+        		openCusAddWin,//添加窗口
+        		cusExecAdd,//确定按钮
+        		openCusUpwin,//修改窗口
+        		cusExecUp,
+        		onSelectionChange,
+        		cusExecDel,
+        		cusDel,
+        		CusUpstatus,
+        		
+        	},
+        	mounted(){
+        		this.getCustomerPage(1);
+        	}
+        });
+      </script>
+</body>
+</html>

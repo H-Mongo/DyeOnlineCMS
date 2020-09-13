@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+	content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<title>用户界面</title>
+<link rel="stylesheet" href="../../element-ui/theme-chalk/index.css">
+</head>
+<body>
+
+	<div id="app">
+	
+		<el-container style="height:40px;">
+			<el-breadcrumb separator-class="el-icon-arrow-right">
+			  <el-breadcrumb-item>安全管理</el-breadcrumb-item>
+			  <el-breadcrumb-item><a href="#">用户管理</a></el-breadcrumb-item>
+			</el-breadcrumb>
+		</el-container>
+		
+		<el-form :inline="true" :model="query">
+		  <el-form-item label="用户编号">
+		    <el-input v-model="query.u_id"  placeholder="请输入用户编号"></el-input>
+		  </el-form-item>
+		  <el-form-item label="用户名称">
+		    <el-input v-model="query.u_name" placeholder="请输入用户名称"></el-input>
+		  </el-form-item>
+		  <el-form-item label="用户状态">
+		  <!-- 状态 :  00-未确定 22-确定 55-启用 77-禁用 99-逻辑删除 -->
+		    <el-select v-model="query.u_status"   clearable  placeholder="请选择用户状态">
+		      <el-option label="未确定" value="00"></el-option>
+		      <el-option label="确定" value="22"></el-option>
+		      <el-option label="启用" value="55"></el-option>
+		      <el-option label="禁用" value="77"></el-option>
+		    </el-select>
+		  </el-form-item>
+		  <el-form-item>
+		    <el-button type="primary" icon="el-icon-search" plain  @click.prevent="getUserPage(1)">查询</el-button>
+		  </el-form-item>
+		</el-form>
+		
+		<el-button type="success" icon="el-icon-circle-plus-outline" plain  @click="openUserAddWin">新增</el-button> 
+		<el-button type="danger" icon="el-icon-delete"  plain @click="executeBatchDel">批量删除</el-button>
+		 
+		
+		<el-table :data="page.rows"   stripe style="width: 100%" @selection-change="handleSelectionChange" >
+			<el-table-column type="selection" width="55" align="center">
+		    </el-table-column>
+			<el-table-column prop="u_id" label="用户编号" width="180"  align="center">
+			</el-table-column> 
+			<el-table-column prop="u_name" label="用户名称" width="180"  align="center">
+			</el-table-column> 
+			<el-table-column prop="u_status" label="用户状态" width="180"  align="center"> 
+				 <template  slot-scope="scope">
+                    <el-tag effect="dark" type="info" v-if="scope.row.u_status==00">未确定</el-tag>
+                    <el-tag effect="dark" type="" v-if="scope.row.u_status==22">已确定</el-tag>
+                    <el-tag effect="dark" type="success" v-if="scope.row.u_status==55">已启用</el-tag>
+                    <el-tag  effect="dark" type="danger" v-if="scope.row.u_status==77">已禁用</el-tag>
+                 </template>
+			</el-table-column> 
+			
+			<el-table-column label="状态改变" width="180"  align="center">
+		      <template slot-scope="scope">
+		      	 <el-button type="primary" plain icon="el-icon-circle-check"  v-if="scope.row.u_status==00" @click="updUserStatus(scope.row)">确定</el-button>
+		      	 <el-button type="success"  plain icon="el-icon-circle-plus-outline" v-if="scope.row.u_status==22 || scope.row.u_status==77" @click="updUserStatus(scope.row)">启用</el-button>
+		      	 <el-button type="danger"  plain  icon="el-icon-circle-close" v-if="scope.row.u_status==55" @click="updUserStatus(scope.row)">禁用</el-button>
+		      </template>
+		    </el-table-column>
+			
+			<el-table-column label="操作" width="330" align="center">
+		      <template slot-scope="scope">
+		   <!--      <el-button type="primary"  icon="el-icon-edit-outline" plain @click="openUpdUserWin(scope.row)">编辑</el-button> -->
+		        <el-button type="primary" plain icon="el-icon-edit" @click="openUserRoleWin(scope.row)">角色管理</el-button>
+		        <el-button type="danger" icon="el-icon-delete" plain  @click="handleUserDelete(scope.row.u_id)">删除</el-button>
+		      </template>
+		    </el-table-column>
+		    
+		</el-table>
+		
+		<!-- 分页条-->
+		<el-pagination 
+			background 
+			layout="sizes,prev, pager,next,->,total,jumper"
+		    :total="page.total"	    
+		    :page-sizes="[3, 5, 8, 10,12,15,20,25]"
+		    :page-size.sync="page.pageSize"
+		    :current-page.sync="page.pageNum"
+		 	@size-change="handleSizeChange"
+		    @current-change="handleCurrentChange"
+		>
+		</el-pagination> 
+		
+		
+		
+		   
+		
+		<!--新增窗口 -->
+		<el-dialog title="新增用户信息" :visible.sync="userAddWinVisible">
+		 <el-form :model="newUser">
+		    <el-form-item label="用户名称" :label-width="'120px'">
+		      <el-input v-model="newUser.u_name" autocomplete="off"></el-input>
+		    </el-form-item>
+		    <el-form-item label="用户密码" :label-width="'120px'">
+		      <el-input v-model="newUser.u_pwd" autocomplete="off"></el-input>
+		    </el-form-item>
+		  </el-form>
+		  <div slot="footer" class="dialog-footer">
+		    <el-button @click="userAddWinVisible = false">取 消</el-button>
+		    <el-button type="primary" @click="executeUserAdd">确 定</el-button>
+		  </div>
+		</el-dialog> 
+		 
+		
+		<!--修改窗口 -->
+		<el-dialog title="修改用户信息" :visible.sync="userUpdWinVisible">
+		 <el-form :model="oldUser">
+		    <el-form-item label="用户名称" :label-width="'120px'">
+		      <el-input v-model="oldUser.u_name" autocomplete="off"></el-input>
+		    </el-form-item>
+		    <el-form-item label="用户密码" :label-width="'120px'">
+		      <el-input v-model="oldUser.u_pwd" autocomplete="off"></el-input>
+		    </el-form-item>
+		  </el-form>
+		  <div slot="footer" class="dialog-footer">
+		    <el-button @click="userUpdWinVisible = false">取 消</el-button>
+		    <el-button type="primary" @click="executeUserUpd">确 定</el-button>
+		  </div>
+		</el-dialog> 
+		
+		
+		<!--用户权限窗口 -->
+		<el-dialog title="用户角色信息"  width="800px" :visible.sync="userRoleWinVisible">
+		 	<el-form :model="oldUser">
+			    <el-form-item label="用户名称" :label-width="'120px'">
+			      <el-input v-model="oldUser.u_name" disabled autocomplete="off"></el-input>
+			    </el-form-item>
+		 		<el-form-item label="用户角色" :label-width="'120px'">
+			      	<el-transfer 
+				 		style="text-align: left; display: inline-block"
+				 		v-model="checkData" 
+				 		:data="roleData"
+				 		:titles="['所有备选角色', '用户已有角色']"
+				 		:button-texts="['到左边', '到右边']"
+				 		 :props="{
+					      key: 'ro_id',
+					      label: 'ro_name'
+					    }"
+		 	       >
+			  </el-transfer>
+			  <div style="text-align:right;">
+			  
+			 		<el-button  type="info" class="transfer-footer" slot="right-footer"  @click="userRoleWinVisible = false">取消</el-button>
+      		  		<el-button type="success" class="transfer-footer" slot="right-footer"  @click="exectueAddRole">确定</el-button>
+			  </div>
+			  </el-form-item>
+			  
+		  </el-form>
+		  
+		
+		</el-dialog> 
+		
+		
+	</div>
+
+
+	<script src="../../js/vue.min.js"></script>
+	<script src="../../js/axios.min.js"></script>
+	<script src="../../element-ui/index.js"></script>
+	<script src="../../js/my.js"></script>
+
+
+	<script type="text/javascript">
+	
+		const objCopy = function(obj){
+			
+			let exchange ={};
+			
+			for(let props in obj){
+				
+				exchange[props] = obj[props];
+				
+			}
+			
+			return exchange;			
+			
+		}
+		
+		
+		//打开用户角色编辑窗口
+		const openUserRoleWin = function(oldUser){
+			
+			this.oldUser = oldUser;
+			this.userRoleWinVisible = true;
+			
+			this.roleData=[];
+			this.checkData=[];
+			
+			let u_id = oldUser.u_id;
+			
+			//获取所有角色
+			this.$axios.get('/safty/user/role')
+				.then((res)=>{
+					this.roleData = res.data;
+					
+				})
+				.catch((err)=>{
+					console.log(err);
+					
+				});
+			
+			
+			//获取当前用户的角色
+			this.$axios.get(`/safty/user/role/${u_id}`)
+				.then((res)=>{
+					 let result = res.data;
+					
+					 console.log(result.data);
+					 for(let r of result.data){
+						this.checkData.push(r.ro_id);
+					}
+					
+					
+				})
+				.catch((error)=>{
+					console.log(error);
+				})
+			console.log(u_id);
+			this.u_id = u_id;
+			
+		}
+		
+		
+		//添加、删除角色
+		
+		const exectueAddRole = function(){
+			
+			this.$axios.post('/safty/user/user/role',{
+					u_id : this.u_id,
+					ro_ids : this.checkData
+				})
+				.then((res)=>{
+					if(res.data.success){
+						
+						this.userRoleWinVisible = false;
+						this.getUserPage(this.page.pageNum);
+						
+						
+						this.$message({
+							message : res.data.message,
+							type : 'success'
+						});
+					}else{
+						this.$message({
+							message : res.data.message,
+							type : 'error'
+						});
+					}
+				})
+				.catch((err)=>{
+					console.log(err);
+				})
+			
+			
+		}
+		
+		
+		
+		//修改用户状态
+		const updUserStatus = function(status){
+			
+			this.$axios.put('/safty/user/userStatus',status)
+				.then((res)=>{
+					
+					if(res.data.success){
+						
+						this.getUserPage(this.page.pageNum);
+						
+						this.$message({
+							message : res.data.message,
+							type : 'success'
+						});
+						
+					}else{
+						this.$message({
+							message : res.data.message,
+							type : 'error'
+						});
+					}
+				})
+				.catch((err)=>{
+					console.log(err);
+				})
+			
+		}
+		
+		
+		
+
+		//打开新增窗口
+		const openUserAddWin = function(){
+			this.userAddWinVisible = true;			
+		}
+		
+		//执行新增
+		const executeUserAdd = function(){
+			
+			this.$axios.post('/safty/user/user',this.newUser)
+				.then((res)=>{
+					
+					let result = res.data;
+					if(result.success){
+						
+						this.userAddWinVisible = false;
+						
+						this.getUserPage(this.page.totalPage + 1);
+						
+						this.$message({
+							message : result.message,
+							type:'success'
+						});
+						
+					}else{
+						
+						this.$message({
+							message : result.message,
+							type:'error'
+						});
+						
+					}
+				})
+				.catch((error)=>{
+					console.log(error);
+				});
+			
+			this.newUser = {};//清空表单
+		}
+		
+		//打开修改窗口
+		const openUpdUserWin = function(oldUser){
+			this.oldUser = objCopy(oldUser);
+			this.userUpdWinVisible = true;
+		}
+	
+		//执行修改
+		const executeUserUpd = function(){
+			
+			this.$axios.put('/safty/user/user',this.oldUser)
+			.then((response)=>{
+				let result = response.data;
+				
+				if(result.success){
+					
+					this.userUpdWinVisible = false;
+					
+					this.getUserPage(this.page.pageNum);//回到当前页
+					
+					this.$message({
+				          message: result.message,
+				          type: 'success'
+				        });
+				}else{
+					this.$message({
+				          message: result.message,
+				          type: 'error'
+				        });
+				}
+			})
+			.catch((error)=>{
+				console.log(error);
+			});
+			
+			
+		}
+		
+		
+		//单个删除
+		const handleUserDelete = function(id){
+			
+			this.$axios.delete(`/safty/user/user/${id}`)
+				.then((res)=>{
+					
+					let result = res.data;
+					
+					if(result.success){
+						
+						this.getUserPage(this.page.pageNum);
+						
+						this.$message({
+							message:result.message,
+							type:'success'
+						});
+					}else{
+						this.$message({
+							message:result.message,
+							type:'error'
+						});
+					}
+				})
+				.catch((err)=>{
+					console.log(err);
+				})
+			
+		}
+		
+		
+		
+		//批量删除
+		const executeBatchDel = function(){
+			
+			if(this.checkUser.length == 0){
+				this.$message({
+					  showClose: true,
+			          message: "请至少选择一条数据！！！",
+			          type: 'error'
+			        });
+				return;
+			}
+			
+			
+			let ids = [];
+			
+			for(let user of this.checkUser){
+				ids.push(user.u_id);
+			}
+			
+			this.$axios.delete('/safty/user/user',{data : ids})
+				.then((res)=>{
+					
+					if(res.data.success){
+						
+					this.getUserPage(this.page.pageNum);
+					
+					this.$message({
+				          message: res.data.message,
+				          type: 'success'
+				        });
+				}else{
+					this.$message({
+				          message: res.data.message,
+				          type: 'error'
+				        });
+				}
+					
+				})
+				.catch((error)=>{
+					console.log(error);
+				})
+		}
+		
+	
+		const vm = new Vue({
+			
+			el:'#app',
+			data:{
+				
+				query:{//查询参数
+					pageSize:5,
+					pageNum:1
+				},
+				page:{}, //分页参数
+				
+				userAddWinVisible:false,
+				
+				userUpdWinVisible:false,
+				
+				newUser:{},
+				
+				oldUser:{},
+				
+				checkUser:[], //多选框数组
+				
+				userRoleWinVisible:false ,//用户角色窗口是否可见
+				
+				checkData:[], //用户已有角色
+				 
+				roleData:[],   //所有角色
+				          
+				u_id:''
+			},
+			methods:{
+				
+				//查询第一页
+				getUserPage(pageNum){
+					
+					this.query.pageNum = pageNum;
+					this.$axios.get('/safty/user/user',{params:this.query})
+						.then((res)=>{
+							this.page = res.data;							
+						})
+						.catch(()=>{
+							console.log(error);
+						})
+					
+				},
+				
+				//当每页的显示数发生变化时，触发该函数
+				handleSizeChange(pageSize){
+					this.query.pageSize = pageSize;
+					this.getUserPage(1);
+					
+				},
+				
+				//当前页变化时触发该函数
+				handleCurrentChange(pageNum){
+					
+					this.getUserPage(pageNum);
+				},
+				
+				
+				handleSelectionChange(array){ //处理多选框
+					this.checkUser = array;
+				},
+				
+				
+				openUserAddWin, //打开用户新增窗口
+				
+				openUpdUserWin, //打开用户修改窗口
+				
+				executeUserAdd, //执行新增
+				
+				handleUserDelete, //单个删除
+				
+				executeBatchDel, //批量删除
+				
+				executeUserUpd, //执行修改
+				
+				updUserStatus, //修改用户状态
+				
+				openUserRoleWin,  //打开用户角色编辑窗口
+				
+				exectueAddRole
+				
+				
+				
+			},
+			mounted(){
+				
+				this.getUserPage(1);
+			}
+		});
+
+	</script>
+</body>
+</html>

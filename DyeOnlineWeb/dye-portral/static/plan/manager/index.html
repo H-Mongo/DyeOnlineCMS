@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>宜染在线主页</title>
+    <!-- 此处设置对移动端页面开发很重要，该设置确保页面与设备相适应 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="../../element-ui/theme-chalk/index.css">
+
+    <style type="text/css">
+        /* .el-input {
+            width: 130px;
+        } */
+
+        .el-card__header {
+            box-sizing: border-box;
+            padding: 18px 20px 0px;
+            border-bottom: 1px solid rgb(235, 238, 245);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app">
+
+        <el-card class="box-card" :body-style="{ padding: '10px', margin: '0px'}">
+            <!-- 卡片头显示的内容 -->
+            <div slot="header" class="clearfix">
+                <!--  <span>产品规格参数</span> -->
+                <!-- 查询表单 -->
+                <el-form :inline="true" :model="queryObj">
+                    <el-form-item label="状态选择">
+                        <el-select v-model="queryObj.plan_status" @change="selectionChangedPlanStatus" placeholder="未下达">
+                            <!-- 状态 00-未确定 22-确定 55-启用 77-禁用 99-逻辑删除 -->
+                            <el-option label="查看全部" value=""></el-option>
+                            <el-option label="未下达" value="1"></el-option>
+                            <el-option label="已下达" value="2"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="产品类型">
+                            <el-select v-model="queryObj.plan_type" @change="selectionChangedPlanType" placeholder="所有类型">
+                                <!-- 状态 00-未确定 22-确定 55-启用 77-禁用 99-逻辑删除 -->
+                                <el-option label="查看全部" value=""></el-option>
+                                <el-option label="白布" value="1"></el-option>
+                                <el-option label="染色" value="2"></el-option>
+                                <el-option label="无底色印花" value="3"></el-option>
+                                <el-option label="有底色印花" value="4"></el-option>
+                            </el-select>
+                    </el-form-item>
+                    <el-form-item label="序号">
+                        <el-input v-model="queryObj.plan_xh" placeholder="请输入序号" clearable></el-input>
+                    </el-form-item>
+                    <el-form-item label="产量">
+                            <el-col :span="11">
+                                <el-input type.native="number" placeholder="起始产量" v-model="queryObj.plan_num_start" style="width: 100%;"></el-input>
+                            </el-col>
+                            <el-col class="line" :span="2">&nbsp;&nbsp;至</el-col>
+                            <el-col :span="11">
+                                <el-input type.native="number" placeholder="起始产量" v-model="queryObj.plan_num_end" style="width: 100%;"></el-input>
+                            </el-col>
+                    </el-form-item>
+                    <!-- <el-form-item label="计划日期">
+                            <el-col :span="11">
+                              <el-date-picker type="month" value-format="yyyy-MM" placeholder="起始日期" v-model="queryObj.plan_month_start" style="width: 100%;"></el-date-picker>
+                            </el-col>
+                            <el-col class="line" :span="2">&nbsp;&nbsp;至</el-col>
+                            <el-col :span="11">
+                              <el-date-picker type="month" value-format="yyyy-MM" placeholder="结束日期" v-model="queryObj.plan_month_end" style="width: 100%;"></el-date-picker>
+                            </el-col>
+                    </el-form-item> -->
+
+                    <el-form-item>
+                        <el-button type="primary" size="small" @click.prevent="execQuery" icon="el-icon-search">查询
+                        </el-button>
+                    </el-form-item>
+                </el-form>
+
+            </div>
+
+            <el-button type="primary" @click="openWinAdd" class="el-icon-edit-outline">新增计划</el-button>
+            <el-button type="danger" @click="" class="el-icon-delete">批量删除</el-button>
+            <!-- 表格内容 -->
+            <el-table :data="page.rows" stripe style="width: 100%" empty-text tooltip-effect="dark"
+                @selection-change="handleSelectionChange">
+                <el-table-column type="selection" width="55" fixed="left">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="plan_xh" label="计划序号">
+                </el-table-column>
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="plan_type"  width="90" label="计划类型">
+                    <template slot-scope="scope">
+                        <el-button type="text" @click="planDetails(scope)">{{ scope.row.plan_type | filterPlanType }}</el-button>
+                    </template>
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="plan_num" width="120" label="计划产量（单位：米）">
+                </el-table-column>
+                <el-table-column header-align="center" prop="plan_month" width="100" label="计划月份" align="center" >
+                </el-table-column>
+                <el-table-column header-align="center" width="60" align="center" label="详情信息">
+                    <template slot-scope="scope">
+                        <el-button type="text" @click="planDetails(scope)">查看</el-button>
+                    </template>
+                </el-table-column>
+
+                <el-table-column header-align="center" align="center" width="90" prop="plan_status" label="状态">
+                    <template slot-scope="scope">
+                        <el-tag :type="scope.row.plan_status | filterTagType" close-transition>
+                            {{scope.row.plan_status | filterTagName}}</el-tag>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="操作" header-align="center" fixed="right" align="center">
+                    <!-- 状态 00-未确定 22-确定 55-启用 77-禁用 99-逻辑删除 -->
+                    <template slot-scope="scope">
+                            <el-button type="primary" v-show="scope.row.plan_status === 1" size="mini"
+                                @click="openEditWin(scope.index, scope.row)">修改</el-button>
+                            <el-button type="primary" :disabled="scope.row.plan_status === 2" size="mini"
+                                @click="updateStatus(scope.row)" >下达计划</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <!-- 分页条 -->
+            <el-pagination background @size-change="pageSizeChange" @current-change="pageNumChange"
+                :current-page.sync="page.pageNum" :page-sizes="[5, 7, 10]" :page-size="5"
+                layout="sizes, prev, pager, next, jumper, ->, total" :total="page.total">
+            </el-pagination>
+        </el-card>
+
+        <!-- 修改新增表单 -->
+        <el-dialog :visible.sync="visible" center>
+            <div slot="title">
+                <span>{{formTitle}}</span>
+            </div>
+            
+            <el-form :model="dto" :rules="rules" ref="dto">
+                        <!-- 客户选择 -->
+                        <el-form-item label="选择客户" prop="cus_id">
+                                <el-select v-model="dto.cus_id" filterable placeholder="请选择客户">
+                                        <el-option
+                                            v-for="cus in customers"
+                                           :key="cus.cus_id"
+                                           :label="cus.cus_name"
+                                           :value="cus.cus_id">
+                                        </el-option>
+                                </el-select>
+                        </el-form-item>
+                        <!-- 规格选择 -->
+                        <el-form-item label="选择规格" prop="standard_id">
+                                <el-select v-model="dto.standard_id" filterable placeholder="请选择规格">
+                                         <el-option
+                                        v-for="std in stds"
+                                        :key="std.standard_id"
+                                        :label="std.standard_name"
+                                        :value="std.standard_id">
+                                        </el-option>
+                                </el-select>
+                        </el-form-item>
+
+                    <!-- 色号选择 -->
+                    <el-form-item label="选择色号" prop="co_id">
+                            <el-select v-model="dto.co_id" filterable placeholder="请选择色号">
+                                    <el-option
+                                      v-for="color in colors"
+                                      :key="color.co_id"
+                                      :label="color.co_name"
+                                      :value="color.co_id">
+                                    </el-option>
+                            </el-select>
+                    </el-form-item>
+
+                    <!-- 计划类型 -->
+                    <el-form-item label="产品类型" prop="plan_type" >
+                            <el-radio-group v-model="dto.plan_type">
+                              <el-radio v-for="(type, index) in planTypes" :key="index"
+                                        :label="type.tId">{{type.tName}}</el-radio>
+                            </el-radio-group>
+                    </el-form-item>
+                    
+                      <!-- 计划优先级 A-加急，B-正常，C-可延缓 -->
+                      <el-form-item label="计划优先级" prop="plan_priority" >
+                            <el-radio-group size="small" v-model="dto.plan_priority">
+                                <el-radio-button label="B">正常</el-radio-button>
+                                <el-radio-button label="A">加急</el-radio-button>
+                                <el-radio-button label="C">可延缓</el-radio-button>
+                            </el-radio-group>
+                      </el-form-item>
+
+                        <el-form-item prop="plan_month"  label="计划月份" >
+                            <el-date-picker type="month" :picker-options="pickerOptions" value-format="yyyy-MM" required placeholder="请选择计划月份" v-model="dto.plan_month" style="width: 100%;"></el-date-picker>
+                        </el-form-item>
+
+                        <el-form-item prop="plan_num" label="计划产量" >
+                                <el-input type="number" placeholder="请输入计划产量" v-model="dto.plan_num" style="width: 100%;"></el-input>
+                        </el-form-item>
+                    
+                    <el-form-item>
+                        <el-button v-show="isAdd" type="primary" @click="submitPlan('dto')">立即创建</el-button>
+                        <el-button v-show="isAdd" @click="resetForm('dto')">重置</el-button>
+                        <el-button type="primary" v-show="!isAdd" @click="submitPlan('dto')">修改</el-button>
+                    </el-form-item>
+
+                  </el-form>
+
+
+            <!-- <div slot="footer">
+                <el-button @click="visible = false">取 消</el-button>
+                <el-button type="primary" v-show="isAdd" @click="execAdd">提 交</el-button>
+                <el-button type="primary" v-show="!isAdd" @click="execUdp">提 交</el-button>
+            </div> -->
+        </el-dialog>
+
+
+
+    </div>
+
+    <script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+    <script src="../../element-ui/index.js"></script>
+    <script src="../../js/my.js"></script>
+
+    <script type="text/javascript">
+
+
+
+        // 定义用于提交表达时的验证规则
+        let checkPlanMonth = function (rule, value, callback) {
+            /* console.log(rule);
+            console.log(value)
+            console.log(callback) */
+            // 向服务器获取时间
+          let inDate = new Date(value);
+            
+            if(value === ''){
+                callback(new Error('请输入计划日期'));
+            } else {
+                let serverTime = new Date();
+                vm.$axios.get("/plan/manager/getTime").then((resp)=>{
+                    serverTime = new Date(resp.data.data);
+                })
+                
+                        if(inDate.getFullYear() < serverTime.getFullYear()){ // 当前输入的年份小于服务器的年份
+                            callback(new Error('本地日期与服务器日期不同步！'));
+                        } else {
+                            if(inDate.getMonth() < serverTime.getMonth()){ // 当前输入的月份小于服务器的月份
+                                callback(new Error('本地日期与服务器日期不同步！'));
+                            }
+                            //return;
+                            callback(); 
+                        }
+                    
+                callback(); 
+            }
+        
+               
+            }
+            
+            /* let checkCus = function (rule, value, callback) { // 验证客户
+                
+                if(value === ''){
+                    callback(new Error('请选择客户！'));
+                } else {
+                    callback();
+                }
+
+            }
+            let checkColor = function (rule, value, callback) { // 验证色号
+                if(value === ''){
+                    callback(new Error('请选择色号！'));
+                } else {
+                    callback();
+                }
+            }
+            let checkStd = function (rule, value, callback) { // 验证规格
+                if(value === ''){
+                    callback(new Error('请选择规格！'));
+                } else {
+                    callback();
+                }
+            }
+            const checkType = function (rule, value, callback) { // 验证类型
+                if(value === ''){
+                    callback(new Error('请选择产品类型！'));
+                } else {
+                    callback();
+                }
+            }
+            let checkPriority = function (rule, value, callback) { // 验证优先级
+                if(value === ''){
+                    callback(new Error('请选择优先级！'));
+                } else {
+                    callback();
+                }
+            }
+            let checkNum= function (rule, value, callback) { // 验证产量
+                if(value === ''){
+                    callback(new Error('请输入计划产量！'));
+                } else if((typeof value) !== "number"){
+                    alert(typeof value)
+                    callback(new Error("请输入数字"));
+                }
+                callback()
+            } */
+
+        const vm = new Vue({
+            el: "#app",
+            data: {
+                page: {}, // 页面对象
+                checkboxVals: [], // 多选框数据
+                queryObj: { // 查询参数
+                    pageSize: 5,
+                    pageNum: 1,
+                },
+                planTypes: [], // 计划类型
+                isAdd: true, // 默认显示显示增加窗口的提交按钮
+                formTitle: "", // 新增（修改）时弹出框的标题
+                dto: {}, // 新增（修改）数据对象
+                visible: false, // 是否显示对话框
+                rules: {
+                    /* plan_month:[ // 日期的校验规则
+                        { validator: checkPlanMonth, trigger: 'blur'},
+                        { validator: checkPlanMonth, trigger: 'change'},
+                    ],
+                    cus_id:[ // 客户
+                        { validator: checkCus, trigger: 'blur'}
+                    ],
+                    standard_id:[ // 规格
+                        { validator: checkStd, trigger: 'blur'}
+                    ],
+                    co_id:[ // 色号
+                        { validator: checkStd, trigger: 'blur'}
+                    ],
+                    plan_type:[ // 计划类型
+                        { validator: checkStd, trigger: 'blur'}
+                    ],
+                    plan_priority:[ // 优先级
+                        { validator: checkStd, trigger: 'blur'}
+                    ],
+                    plan_num:[ // 产量
+                        { validator: checkNum, trigger: 'blur'}
+                        
+                    ], */
+                }, // 表单验证规则
+                customers: [], // 客户信息的数组
+                colors: [], // 色号数组
+                stds: [], // 规格信息的数组
+                //plan_priority: "B", // 计划优先级默认选中正常
+                //serverTime:{}, // 服务器时间
+                // 判断日期
+                pickerOptions: {
+                    disabledDate(time) {
+                        return time.getTime() < Date.now();
+                    },
+                },
+            },
+            methods: {
+
+                // 获得页面对象
+                getPage(pageNum) { // 获得页面数据
+                    // 修改页码
+                    this.queryObj.pageNum = pageNum;
+                    console.log(this.queryObj);
+                    this.$axios.get('/plan/manager/planInfo', {
+                        params: this.queryObj
+                    })
+                        .then(resp => {
+                            console.log(resp);
+                            this.page = resp.data;
+                            this.planTypes = resp.data.types; // 绑定规格信息
+                            console.log(this.planTypes);
+                        })
+                        .catch(error => {
+                            console.log(error);
+                        });
+                },
+                // 执行查询操作
+                execQuery() {
+                    //console.log(this.queryObj);
+                    let tempSize = this.queryObj.pageSize; // 缓存之前的页面大小
+                    // 修改Size
+                    this.queryObj.pageSize = this.page.total;
+                    this.getPage(1);
+                    // 还原页面大小
+                    this.queryObj.pageSize = tempSize;
+                },
+
+                // 监听单选框操作
+                handleSelectionChange(val) {
+                    this.checkboxVals = val;
+                },
+
+                selectionChangedPlanStatus(val) {
+                    //console.log(val);
+                    // 修改查询参数
+                    this.queryObj.plan_status = val;
+                    // 刷新页面
+                    this.getPage(1);
+                },
+
+                selectionChangedPlanType(val) {
+                    //console.log(val);
+                    // 修改查询参数
+                    this.queryObj.plan_type = val;
+                    // 刷新页面
+                    this.getPage(1);
+                },
+
+                planDetails(row){ // 查看计划的详情
+                    console.log("详情");
+                },
+
+                submitPlan(formName){ // 提交计划
+                    this.$refs[formName].validate((valid) => { // 验证表单中的内容是否合理
+                        if (valid) {
+                            if(this.isAdd){ // 判断是修改还是新增
+                                this.execAdd();
+                            } else {
+                                this.execUdp();
+                            }
+                            //alert('submit!');
+                        } else {
+                            console.log('error submit!!');
+                            return false;
+                        }
+                    });
+                },
+
+                resetForm(formName){ // 重置表单
+                    this.$refs[formName].resetFields();
+                },
+
+                // 打开增加窗口
+                openWinAdd() {
+                    this.dto = {} // 消除修改时的数据影响
+                    this.isAdd = true; // 激活增加提交按钮的功
+                    this.formTitle = "添加计划"; // 修改窗口的标题
+                    this.visible = true // 显示窗口
+                },
+
+                // 打开修改窗口
+                openEditWin(index, row) {
+                    this.dto = this.$copyObj(row); // 消除修改时的数据影响
+                    // 对优先级进行判断
+                    if(this.dto.plan_xh.search("A") != -1){
+                        this.dto.plan_priority = "A";
+                    } else if (this.dto.plan_xh.search("C") != -1) {
+                        this.dto.plan_priority = "C";
+                    } else {
+                        this.dto.plan_priority = "B";
+                    }
+                    this.isAdd = false; // 激活增加提交按钮的功
+                    this.formTitle = "修改计划"; // 修改窗口的标题
+                    this.visible = true // 显示窗口
+                },
+
+                // 执行增加
+                execAdd() {
+                    let date = new Date();
+                    let xh = ""; // 序号
+                    let year = date.getFullYear();
+                    let month = date.getMonth()+1 < 10 ? "0"+(date.getMonth()+1) : (date.getMonth()+1); 
+                    let day = date.getUTCDate() < 10 ? "0"+date.getUTCDate() : date.getUTCDate();
+                    let hour = date.getHours() < 10 ? "0"+date.getHours() : date.getHours();
+                    let minute = date.getMinutes() < 10 ? "0"+date.getMinutes() : date.getMinutes();
+                    let second = date.getSeconds() < 10 ? "0"+date.getSeconds() :  date.getSeconds();
+                    // 指定计划序号
+                    if(this.dto.plan_priority === "A") {
+                        xh = "A"+xh+year+month+day+hour+minute+second;
+                        this.dto.plan_xh = xh;
+                    } else if(this.dto.plan_priority === "C") {
+                        xh = "C"+xh+year+month+day+hour+minute+second;
+                        this.dto.plan_xh = xh;
+                    } else {
+                        xh = "B"+xh+year+month+day+hour+minute+second;
+                        this.dto.plan_xh = xh;
+                    }
+                    console.log(this.dto);
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '加载中...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    this.$axios.post("/plan/manager/planInfo", this.dto).then(resp => {
+                        console.log(resp);
+                        loading.close(); // 关闭加载框
+                        let res = resp.data;
+                        if (res.success) {
+                            this.visible = false; // 关闭弹窗
+                            this.getPage(this.page.pageTotal + 1); // 刷新页
+                            this.$message({
+                                message: res.message,
+                                type: 'success'
+                            });
+                        } else {
+                            this.$message({
+                                message: res.message,
+                                type: 'error'
+                            });
+                        }
+                    })
+                        .catch(error => {
+                            loading.close(); // 关闭加载框
+                            console.log(error);
+                        });
+                },
+                // 执行修改
+                execUdp() {
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '加载中...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    this.$axios.put("/plan/manager/planInfo", this.dto).then(resp => {
+                        console.log(resp);
+                        loading.close(); // 关闭加载框
+                        let res = resp.data;
+                        if (res.success) {
+                            this.visible = false; // 关闭弹窗
+                            this.getPage(this.page.pageNum); // 刷新当前页
+                            this.$message({
+                                message: res.message,
+                                type: 'success'
+                            });
+                        } else {
+                            this.$message({
+                                message: res.message,
+                                type: 'error'
+                            });
+                        }
+                    })
+                        .catch(error => {
+                            loading.close(); // 关闭加载框
+                            console.log(error);
+                        });
+
+                },
+              /*   // 执行批量删除
+                execBatchDel() {
+                    if (this.checkboxVals.length == 0) {
+                        this.$message({
+                            showClose: true,
+                            message: '您没有选择数据！',
+                            type: 'error'
+                        });
+                        return;
+                    }
+
+                    let ids = [];
+                    for (let role of this.checkboxVals) {
+                        ids.push(role.ro_id);
+                    }
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '加载中...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    $axios.delete('/plan/manager/planInfo', { data: ids })
+                        .then(res => {
+                            loading.close();
+                            let result = res.data;
+                            if (result.success) {
+
+                                this.getPage(this.page.pageNum);
+                                this.$message({
+                                    message: result.message,
+                                    type: 'success'
+                                });
+                            } else {
+                                this.$message({
+                                    message: result.message,
+                                    type: 'error'
+                                });
+                            }
+                        })
+                        .catch(err => {
+                            loading.close();
+                            console.log(err);
+                        });
+                },
+
+                // 执行单删
+                execSingleDelete(index, row) {
+                    console.log(index, row);
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '加载中...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    this.$axios.delete(`/plan/manager/planInfo/${row.ro_id}`).then(resp => {
+                        console.log(resp);
+                        loading.close(); // 关闭加载框
+                        let res = resp.data;
+                        if (res.success) {
+                            this.getPage(this.page.pageNum); // 刷新当前页
+                            this.$message({
+                                message: res.message,
+                                type: 'success'
+                            });
+                        } else {
+                            this.$message({
+                                message: res.message,
+                                type: 'error'
+                            });
+                        }
+                    })
+                        .catch(error => {
+                            loading.close(); // 关闭加载框
+                            console.log(error);
+                        });
+                },
+                 */
+                // 页面数据数量变化
+                pageSizeChange(size) {
+                    console.log(`每页 ${size} 条`);
+                    this.queryObj.pageSize = size; // 修改页面大小
+                    this.getPage(1); // 重新查询
+                },
+                // 当前页码
+                pageNumChange(currPage) {
+                    console.log(`当前页: ${currPage}`);
+                    this.queryObj.pageNum = currPage; // 修改页码
+                    this.getPage(currPage); // 重新查询
+                },
+
+                // 状态维护
+                updateStatus(row) {
+                    let stateStr = row.plan_id + '-' + 2; // 获取需要修改的目标状态
+                    console.log("修改的编号和对应的目标状态为："+stateStr);
+                    this.$axios.put(`/plan/manager/planInfo/${stateStr}`)
+                        .then((resp) => {
+                            let res = resp.data;
+                            if (res.success) {
+                                this.getPage(this.page.pageNum); // 刷新当前页
+                                this.$message({
+                                    message: res.message,
+                                    type: 'success'
+                                });
+                            } else {
+                                this.$message({
+                                    message: res.message,
+                                    type: 'error'
+                                });
+                            }
+                        })
+                        .catch((error) => { });
+                },
+
+            },
+            mounted() {
+                // 利用axios发送并发请求
+                axios.all([
+                        this.$axios.get("/info/standard/list"),
+                        this.$axios.get("/info/color/list"),
+                        this.$axios.get("/info/customer/list")
+                    ])
+                    .then(axios.spread( (std, color,cus) => {
+                       /* console.log("std:")
+                        console.log(std);
+                        console.log("color:")
+                        console.log(color)
+                        console.log("cus:")
+                        console.log(cus)  */
+                       /*  customers: [], // 客户信息的数组
+                        colors: [], // 色号数组
+                        stds: [], // 规格信息的数组 */
+                       /*  console.log("----------------------")
+                        console.log(std.data.data);
+                        console.log("----------------------")
+                        console.log("++++++++++++++++++++++++++++++");
+                        console.log(this); */
+
+                        this.stds = std.data.data; // 绑定客户信息
+                        this.colors = color.data.data; // 绑定色号信息
+                        this.customers = cus.data.data; // 绑定规格信息
+                        /* console.log( this.stds)
+                        console.log(this.colors)
+                        console.log(this.customers) */
+
+                    })).catch(axios.spread(function (std, color,cus) {
+                       console.log("出错了")
+                    }));
+                this.getPage(1); // 查询第一页
+            },
+            filters: {
+                filterPlanType(tId){ // 对计划的类别进行过滤
+                //console.log(this)
+                //console.log(vm.planTypes)
+                    // 遍历类别集合，判断对应的类别 
+                     for (let o of vm.planTypes) {
+                        if(tId === o.tId){
+                            return o.tName;
+                            break;
+                        }
+                    }
+ 
+                },
+                // 依据状态码，渲染对应的tag类型
+                filterTagType(state) {
+                    //console.log(Utils.filterType);
+                    console.log(this)
+                        return state === 1 ? "info" : "success";
+                },
+                // 依据状态码，渲染对应的tag名称
+                filterTagName(state) {
+                    return state === 1 ? "未下达" : "已下达";
+                }
+            }
+        });
+
+
+    </script>
+</body>
+
+</html>

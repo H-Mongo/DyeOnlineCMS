@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>宜染在线主页</title>
+    <!-- 此处设置对移动端页面开发很重要，该设置确保页面与设备相适应 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="../../element-ui/theme-chalk/index.css">
+
+    <style type="text/css">
+       /*  .el-input {
+            width: 160px;
+        } */
+
+        .el-card__header {
+            box-sizing: border-box;
+            padding: 18px 20px 0px;
+            border-bottom: 1px solid rgb(235, 238, 245);
+        }
+
+        /* 设置弹出对话框中的分组信息的样式 */
+        .group-info{
+            margin-top: 10px;
+            margin-bottom: 10px;
+            padding-left: 10px;
+            color: #909399;
+            font-weight: bolder;
+        }
+
+        .group-label{
+            color: #606266;
+            font-weight: bolder;
+            font-size: 16px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div id="app">
+
+        <el-card class="box-card" :body-style="{ padding: '5px', margin: '0px'}">
+            <!-- 卡片头显示的内容 -->
+            <div slot="header" class="clearfix">
+                <!-- 查询表单 -->
+                <el-form :inline="true" :model="queryObj">
+                    <el-form-item label="质检级别">
+                        <!-- 30 质检中 35 已质检 -->
+                        <el-select v-model="queryObj.product_level" filterable @change="selectionChangedProductLevel" placeholder="全部">
+                            <el-option label="查看全部" value=""></el-option>
+                            <el-option label="一等品" value="01"></el-option>
+                            <el-option label="二等品" value="02"></el-option>
+                            <el-option label="三等品" value="03"></el-option>
+                            <el-option label="等外品" value="04"></el-option>
+                        </el-select>
+                    </el-form-item>
+
+                    <el-form-item label="组号">
+                            <el-input v-model="queryObj.process_id" placeholder="请输入分组号" clearable></el-input>
+                    </el-form-item>
+
+                    <el-form-item label="商品号">
+                        <el-input v-model="queryObj.product_id" placeholder="请输入商品号" clearable></el-input>
+                    </el-form-item>
+
+                    <el-form-item label="成品量">
+                            <el-col :span="11">
+                                <el-input type.native="number" placeholder="起始量" v-model="queryObj.startNum" style="width: 100%;"></el-input>
+                            </el-col>
+                            <el-col class="line" :span="2">&nbsp;&nbsp;至</el-col>
+                            <el-col :span="11">
+                                <el-input type.native="number" placeholder="结束量" v-model="queryObj.endNum" style="width: 100%;"></el-input>
+                            </el-col>
+                    </el-form-item>
+
+                    <el-form-item>
+                        <el-button type="primary" size="small" @click.prevent="execQuery" icon="el-icon-search">查询
+                        </el-button>
+                    </el-form-item>
+                </el-form>
+
+            </div>
+
+            <el-button type="primary" @click="openMultiPackageWin" class="el-icon-edit-outline">成品打包</el-button>
+            <!-- 表格内容 -->
+            <el-table :data="page.rows" stripe style="width: 100%" empty-text tooltip-effect="dark"
+                @selection-change="handleSelectionChange">
+                <el-table-column type="selection" width="55" fixed="left">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="product_id" label="成品号">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" width="80" prop="process_id" label="组号">
+                </el-table-column>
+                <el-table-column header-align="center" align="center"  prop="productLevelName" label="成品等级">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" prop="product_num" label="产品量(单位：米)">
+                </el-table-column>
+
+                <el-table-column header-align="center" align="center" width="120" prop="product_status" label="状态">
+                    <template slot-scope="scope">
+                        <el-tag :type="scope.row.product_status | filterTagType" 
+                                close-transition
+                                effect="dark">
+                            {{scope.row.statusName}}</el-tag>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="操作" header-align="center" width="200" fixed="right" align="center">
+                    <!--  35 已质检 40 包装中 50 已包装 -->
+                    <template slot-scope="scope">
+                            <el-button-group>
+                            <el-button type="primary" :disabled="!(scope.row.product_status === '35' || scope.row.product_status === '40')" size="mini"
+                                @click="openSinglePackagedWin(scope.row)">包装</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <!-- 分页条 -->
+            <el-pagination background @size-change="pageSizeChange" @current-change="pageNumChange"
+                :current-page.sync="page.pageNum" :page-sizes="[5, 7, 10]" :page-size="5"
+                layout="sizes, prev, pager, next, jumper, ->, total" :total="page.total">
+            </el-pagination>
+        </el-card>
+
+        <!-- 修改新增表单 -->
+        <el-dialog :visible.sync="visible" width="40%" center>
+            <div slot="title">
+                <span style="color: #409EFF">成品包装窗口</span>
+            </div>
+
+            <el-row :gutter="5" >
+                    <el-col span="8">
+                        <div class="grid-content bg-purple">
+                            <!-- 修改隐藏 -->
+                                <el-select label="选择编号" :disabled="isSingle" v-model="productId" filterable @change="selectProduct" placeholder="选择成品编号">
+                                        <el-option
+                                            v-for="p in packageProduct"
+                                            :key="p.product_id"
+                                            :label="'商品号-'+ p.product_id"
+                                            :value="p.product_id">
+                                        </el-option>
+                                </el-select>
+                                <el-card class="box-card" style="margin-top: 10px; padding: '0px';">
+                                    
+                                    <div class="grid-content group-label">成品号：</div>
+                                    <div class="grid-content group-info" >{{product.product_id}}</div>
+                                
+                                    <div class="grid-content group-label">质检等级：</div>
+                                    <div class="grid-content group-info">{{product.productLevelName}}</div>
+
+                                    <div class="grid-content group-label">成品产量（米）：</div>
+                                    <div class="grid-content group-info">{{product.product_num}}</div>
+
+                                    <div class="grid-content group-label">可打包量（米）：</div>
+                                    <div class="grid-content group-info">{{validPackageNum}}</div>
+                                
+                                </el-card>
+                        </div>
+                    </el-col>
+                    <el-col span="16">
+                        <el-card class="box-card">
+                            <el-form :model="package" label-width="60px" ref="check">
+                                <el-form-item v-for="(info, index) in package.infos" :key="index" :label="'包裹-'+(++index)">
+                                    <el-row :gutter="15">
+                                        <el-col span="16">
+                                            <el-input v-model="info.store_num" placeholder="请录入打包量"></el-input>
+                                        </el-col>
+                                        <el-col span="4">
+                                            <el-button v-show="index !== 1" @click.prevent="removeStore(info)">移除</el-button>
+                                        </el-col>
+                                    </el-row>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button type="primary" @click="submitPackageData('check')">提交</el-button>
+                                    <el-button type="primary" @click="addStore">新增包裹</el-button>
+                                    <el-button @click="resetForm('check')">重置</el-button>
+                                </el-form-item>
+                            </el-form>
+                        </el-card>
+                    </el-col>
+            </el-row>
+            
+        </el-dialog>
+
+
+
+    </div>
+
+    <script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+    <script src="../../element-ui/index.js"></script>
+    <script src="../../js/my.js"></script>
+
+    <script type="text/javascript">
+
+
+
+        const vm = new Vue({
+            el: "#app",
+            data: {
+                page: {}, // 页面对象
+                queryObj: { // 查询参数
+                    pageSize: 5,
+                    pageNum: 1,
+                },
+                visible: false, // 是否显示对话框
+                product:{}, // 弹出框对应的分组信息
+                package:{ // 用于对打包信息的收集并传输
+                    infos:[ // 具体的打包信息
+                        {
+                            store_num:0, // 打包量 
+                        }
+                    ]
+                },
+                isSingle:true, // 控制下拉框的是否禁用
+                productId:'', // 选择的成品编号
+                packageProduct:[], // 待打包的成品信息
+                validPackageNum:'', // 成品的可用打包量
+            },
+            methods: {
+
+                // 获得页面对象
+                getPage(pageNum) { // 获得页面数据
+                    // 修改页码
+                    this.queryObj.pageNum = pageNum;
+                    console.log(this.queryObj);
+                    this.$axios.get('/process/pkg/product', {
+                        params: this.queryObj
+                    }).then(resp => {
+                            console.log(resp);
+                            this.page = resp.data;
+                            // this.getPlanListAndTypes(); // 查询计划和类型
+                        })
+                        .catch(error => {
+                            console.log(error);
+                        });
+                },
+                // 执行查询操作
+                execQuery() {
+                    //console.log(this.queryObj);
+                    let tempSize = this.queryObj.pageSize; // 缓存之前的页面大小
+                    // 修改Size
+                    this.queryObj.pageSize = this.page.total;
+                    this.getPage(1);
+                    // 还原页面大小
+                    this.queryObj.pageSize = tempSize;
+                },
+
+                // 监听单选框操作
+                handleSelectionChange(val) {
+                    this.checkboxVals = val;
+                },
+
+                selectionChangedProductLevel(val) {
+                    //console.log(val);
+                    // 修改查询参数
+                    this.queryObj.product_level = val;
+                    // 刷新页面
+                    this.getPage(1);
+                },
+
+                // 选择质检的分组
+                selectProduct(id){
+                    // 遍历数组查找已经选择的成品信息
+                    for (const p of this.packageProduct) {
+                        if(p.product_id === id){ // 找到
+                            this.product = p;
+                            // 查找该成品有效的打包量
+                            this.getValidPackageNum(id);
+                            break;
+                        }
+                    }
+
+                },
+
+                addStore(){ // 动态增加对应打包数量
+                    this.package.infos.push({
+                        store_num:0,
+                    })
+                },
+
+                removeStore(info){ // 移除指定的包裹输入框
+                    const index = this.package.infos.indexOf(info); // 找到该对象对应的索引位置
+                    if(index !== -1 && index !== 0){ // 找到并且不是数组中的第一个
+                        this.package.infos.splice(index,1)// 执行删除
+                    }
+                //    console.log(index);
+                },
+
+                getValidPackageNum(productId) { // 统计可以用于打包的量
+
+                    // 向后台发送请求
+                    this.$axios.get(`/process/pkg/product/${productId}`)
+                        .then((resp) => {
+                            // 绑定有效的打包数据
+                            this.validPackageNum = resp.data;
+                        }).catch((err) => {
+                            console.log(err);
+                        });
+
+                },
+               
+
+                submitPackageData(formName){ // 保存质检等级
+                    this.$refs[formName].validate((valid) => { // 验证表单中的内容是否合理
+                        if (valid) {
+                            //alert("122");
+                            // 对用户输入的打包数据进行检查
+                            let sum = new Number(0);
+                                // 遍历统计打包数据
+                                for (const info of this.package.infos) {
+
+                                    if(Number(info.store_num) < 0){
+                                        this.$message({
+                                            message: "请输入正数！",
+                                            type: 'warning'
+                                        });
+                                        return;
+                                    } else if( Number(info.store_num) === 0 ) { // 不能出现包裹量为 0 的包裹数据
+                                        this.$message({
+                                            message: "不能存包裹量为“0”的包裹信息！",
+                                            type: 'warning'
+                                        });
+                                        return;
+                                    }
+
+                                    sum +=Number(info.store_num); // 对填入的打包数据进行求和，判断打包数据的总和是否合法
+                                }
+                                console.log("打包求和为：");
+                                console.log(Number(sum));
+                                // 对求和数据进行验证
+                               if(Number(sum) > this.product.product_num || isNaN(Number(sum))) {
+                                    this.$message({
+                                        message: "分组数据不合法，请重新填写！",
+                                        type: 'warning'
+                                    });
+                                    return; // 终止
+                                } else if(Number(sum) === 0){
+                                    this.$message({
+                                        message: "请填入有效的打包数据！",
+                                        type: 'warning'
+                                    });
+                                    return; // 终止
+                                }
+                                const storeNum = []; // 用于包装对应的打包信息
+                                for (const info of this.package.infos) {
+                                        storeNum.push(info.store_num);
+                                }
+
+                                console.log(storeNum);
+
+                                // 验证通过，执行打包操作
+                                this.execPackagedProduct(this.product.product_id,storeNum) ;
+
+                        } else {
+                            console.log('error submit!!');
+                            return false;
+                        }
+                    });
+                },
+
+                resetForm(formName){ // 重置表单
+                    this.$refs[formName].resetFields();
+                },
+
+                // 查找可以用于打包的成品信息
+                getNeedPackage(){
+                    this.$axios.get("/process/pkg/pkgProoduct")
+                        .then((resp) => {
+                            const res = resp.data;
+                            if (res.success) {
+                                this.packageProduct = res.data;
+                                //console.log(res.data);
+                                // console.log("成功获得待打包的成品信息！");
+                            } else {
+                                this.$message(res.message);
+                            }
+                        }).catch((err) => {
+                            console.log(err);
+                        });
+                },
+
+                // 打开可选成品包装的窗口
+                openMultiPackageWin() {
+
+                    // 对下拉框启用
+                    this.isSingle = false;
+
+                    // 初始化打包的信息数组
+                    this.package.infos[{store_num:0}];
+                    
+                    // 查询所有待打包的成品信息
+                    this.getNeedPackage();
+                   // console.log(this.packageProduct);
+                    // 窗口可见
+                    this.visible = true;
+
+                },
+
+                // 打开单个成品打包的窗口
+                openSinglePackagedWin(row){
+                    
+                    // 对下拉框禁用
+                    this.isSingle = true;
+
+                    // 初始化打包的信息数组
+                    this.package.infos[{store_num:0}];
+
+                     // 复制对象
+                    const temp = this.$copyObj(row);
+                    // console.log(temp.product_id)
+                    this.product = temp;
+                    //console.log(this.product);
+                    // 获取选中的成品的有效打包数量
+                    this.getValidPackageNum(temp.product_id);
+
+                     // 窗口可见
+                     this.visible = true;
+
+                },
+
+
+                // 执行增加
+                execPackagedProduct(productId,storeNum) {
+                    //console.log(this.dto);
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '加载中...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    this.$axios.post(`/process/pkg/product/${productId}`, storeNum).then(resp => {
+                        //console.log(resp);
+                        loading.close(); // 关闭加载框
+                        let res = resp.data;
+                        if (res.success) {
+                            this.visible = false; // 关闭弹窗
+                            this.getPage(this.page.pageTotal + 1); // 刷新页
+                            this.$message({
+                                message: res.message,
+                                type: 'success'
+                            });
+                        } else {
+                            this.$message({
+                                message: res.message,
+                                type: 'error'
+                            });
+                        }
+                    }).catch(error => {
+                            loading.close(); // 关闭加载框
+                            this.$message({
+                                message: "添加失败！",
+                                type: 'error'
+                            });
+                            console.log(error);
+                        });
+                },
+
+                // 页面数据数量变化
+                pageSizeChange(size) {
+                    console.log(`每页 ${size} 条`);
+                    this.queryObj.pageSize = size; // 修改页面大小
+                    this.getPage(1); // 重新查询
+                },
+                // 当前页码
+                pageNumChange(currPage) {
+                    console.log(`当前页: ${currPage}`);
+                    this.queryObj.pageNum = currPage; // 修改页码
+                    this.getPage(currPage); // 重新查询
+                },
+
+
+            },
+            mounted() {
+               
+                this.getPage(1); // 查询第一页
+
+            },
+            filters: {
+                filterGroup(index){ // 对计划的类别进行过滤
+                    // 遍历类别集合，判断对应的类别 
+                    index += 1;
+                     return '分组' + index;
+                },
+                filterPlanType(tId){ // 对计划的类别进行过滤
+                //console.log(this)
+                //console.log(vm.planTypes)
+                    // 遍历类别集合，判断对应的类别 
+                     for (let o of vm.planTypes) {
+                        if(tId === o.tId){
+                            return o.tName;
+                            break;
+                        }
+                    }
+ 
+                },
+                // 依据状态码，渲染对应的tag类型
+                filterTagType(state) {
+                    // 25 已整理
+                    // 30 质检中
+                    // 35 已质检
+                    // 返回标签类型
+                    return state === '35' ? "primary" : "success";
+                },
+            }
+        });
+
+
+    </script>
+</body>

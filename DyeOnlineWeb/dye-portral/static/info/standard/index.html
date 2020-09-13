@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>宜染在线主页</title>
+    <!-- 此处设置对移动端页面开发很重要，该设置确保页面与设备相适应 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="../../element-ui/theme-chalk/index.css">
+
+    <style type="text/css">
+        .el-input{
+            width: 120px;
+        }
+        form{
+            display: block;
+            margin-top: 0em;
+            margin-bottom: 0em;
+        }
+        .el-card__header{
+            box-sizing: border-box;
+            padding: 18px 20px 0px;
+            border-bottom: 1px solid rgb(235, 238, 245);
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div id="app">
+
+        <el-card class="box-card" :body-style="{ padding: '10px', margin: '0px'}">
+            <!-- 卡片头显示的内容 -->
+            <div slot="header" class="clearfix">
+               <!--  <span>产品规格参数</span> -->
+                <!-- 查询表单 -->
+                <el-form :inline="true" :model="queryObj" class="demo-form-inline">
+                    <el-form-item label="状态选择">
+                        <el-select v-model="queryObj.standard_status"
+                                   @change="selectionChanged"
+                                   placeholder="未确定">
+                        <!-- 状态 00-未确定 22-确定 55-启用 77-禁用 99-逻辑删除 -->
+                        <el-option label="查看全部" value=""></el-option>
+                        <el-option label="已确定" value="22"></el-option>
+                        <el-option label="已启用" value="55"></el-option>
+                        <el-option label="已禁用" value="77"></el-option>
+                        <el-option label="已删除" value="99"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="规格编号">
+                        <el-input v-model="queryObj.standard_id" placeholder="输入编号" clearable ></el-input>
+                    </el-form-item>
+                    <el-form-item label="规格名称">
+                        <el-input type="text" v-model="queryObj.standard_name" placeholder="输入名称" clearable ></el-input>
+                    </el-form-item>
+                     <el-form-item label="规格标注">
+                        <el-input type="text" v-model="queryObj.standard_remark" placeholder="输入标注" clearable ></el-input>
+                    </el-form-item>
+                    
+                    <el-form-item>
+                        <el-button type="primary" size="small" @click.prevent="execQuery" icon="el-icon-search">查询</el-button>
+                    </el-form-item>
+                </el-form>
+            </div>
+
+            <el-button type="primary" @click="openWinAdd">新增</el-button>
+            <el-button type="danger" @click="execBatchDel">删除</el-button>
+            <!-- 表格内容 -->
+            <el-table :data="page.rows" stripe style="width: 100%"
+                    empty-text
+                    tooltip-effect="dark"
+                    @selection-change="handleSelectionChange">
+                <el-table-column type="selection" width="55" fixed="left">
+                </el-table-column>
+                <el-table-column header-align="center" 
+                                 align="center" prop="standard_id" 
+                                 label="规格编号" width="60">
+                </el-table-column>
+                <el-table-column header-align="center" 
+                                 align="center" prop="standard_name" 
+                                 label="规格名称" width="180">
+                </el-table-column>
+                <el-table-column header-align="center" 
+                                 prop="standard_remark" 
+                                 label="规格标注">
+                </el-table-column>
+                <el-table-column header-align="center" align="center" 
+                                 prop="standard_status" label="状态"
+                                 width="100"
+                                 :filters="this.$statArr"
+                                 :filter-method="filterStat"
+                                 filter-placement="bottom-end">
+                            <template slot-scope="scope">
+                                    <el-tag
+                                        :type="scope.row.standard_status | filterTagType"
+                                        close-transition>{{scope.row.standard_status | filterTagName}}</el-tag>
+                            </template>
+                </el-table-column>
+                <el-table-column label="操作" header-align="center"
+                                 fixed="right" align="center">
+                        <!-- 状态 00-未确定 22-确定 55-启用 77-禁用 99-逻辑删除 -->
+                <template slot-scope="scope">
+                        <el-button-group>
+                                <el-button type="primary"
+                                           v-show="scope.row.standard_status === '00'"
+                                           size="mini"
+                                           @click="openEditWin(scope.index, scope.row)">编辑</el-button>
+                                <el-button type="primary" 
+                                           v-show="scope.row.standard_status === '00'"
+                                           size="mini"
+                                           @click="updateStatus(scope.row)">确定</el-button>
+                                <el-button type="primary" 
+                                           v-show="scope.row.standard_status === '22' || scope.row.standard_status === '77'"
+                                           size="mini"
+                                           @click="updateStatus(scope.row)">启用</el-button>
+                                <el-button type="primary" 
+                                           v-show="scope.row.standard_status === '55'"
+                                           size="mini"
+                                           @click="updateStatus(scope.row)">禁用</el-button>
+                                <el-button type="primary" 
+                                           size="mini"
+                                           @click="execSingleDelete(scope.index, scope.row)">删除</el-button>
+                              </el-button-group>
+                </template>
+                </el-table-column>
+            </el-table>
+            <!-- 分页条 -->
+            <el-pagination
+                background
+                @size-change="pageSizeChange"
+                @current-change="pageNumChange"
+                :current-page.sync="page.pageNum"
+                :page-sizes="[5, 7, 10]"
+                :page-size="5"
+                layout="sizes, prev, pager, next, jumper, ->, total"
+                :total="page.total">
+            </el-pagination>
+        </el-card>
+
+
+        <!-- 修改新增表单 -->
+        <el-dialog :visible.sync="visible">
+            <div slot="title">
+                <span>{{formTitle}}</span>
+            </div>
+            <el-form :model="stdDto">
+                <el-form-item label="规格名称" :label-width="'120px'">
+                    <el-input size="medium" v-model="stdDto.standard_name" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="规格标注" :label-width="'120px'">
+                    <el-input type="textarea"
+                              :rows="2" v-model="stdDto.standard_remark" autocomplete="off"></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer">
+                <el-button @click="visible = false">取 消</el-button>
+                <el-button type="primary" v-show="isAdd" @click="execAdd">提 交</el-button>
+                <el-button type="primary" v-show="!isAdd" @click="execUdp">提 交</el-button>
+            </div>
+        </el-dialog>
+        
+
+    </div>
+
+    <script src="../../js/vue.min.js"></script>
+    <script src="../../js/axios.min.js"></script>
+    <script src="../../element-ui/index.js"></script>
+    <script src="../../js/my.js"></script>
+
+    <script type="text/javascript">
+
+        const vm = new Vue({
+            el: "#app",
+            data: {
+                page:{}, // 页面对象
+                checkedStds:[], // 多选框数据
+                queryObj:{ // 查询参数
+                    pageSize: 5,
+                    pageNum: 1
+                },
+                tag: {}, // 用于渲染el-tag组件
+                isAdd: true, // 默认显示显示增加窗口的提交按钮
+                formTitle: "", // 新增（修改）时弹出框的标题
+                stdDto:{}, // 新增（修改）数据对象
+                visible: false // 是否显示对话框
+            },
+            methods: {
+
+                // 获得页面对象
+                getPage(pageNum){ // 获得页面数据
+                    // 修改页码
+                    this.queryObj.pageNum = pageNum;
+                   this.$axios.get('/info/standard/std', {
+                        params: this.queryObj
+                    })
+                    .then(resp => {
+                        //console.log(resp);
+                        this.page = resp.data;
+                    })
+                    .catch(error => {
+                        console.log(error);
+                    });
+                },
+                // 执行查询操作
+                execQuery(){
+                    console.log(this.queryObj);
+                    this.getPage(1);
+                },
+                
+                // 监听单选框操作
+                handleSelectionChange(val) {
+                    this.checkedStds = val;
+                },
+
+                selectionChanged(val){
+                    console.log(val);
+                    // 修改查询参数
+                    this.queryObj.standard_status = val;
+                    // 刷新页面
+                    this.getPage(1);
+                },
+
+                // 打开增加窗口
+                openWinAdd(){
+                    this.stdDto = {} // 消除修改时的数据影响
+                    this.isAdd = true; // 激活增加提交按钮的功
+                    this.formTitle = "增加规格参数窗口"; // 修改窗口的标题
+                    this.visible = true // 显示窗口
+                },
+
+                // 打开修改窗口
+                openEditWin(index, row){
+                    //console.log(index)
+                    //let rObj = row; // 解决表格数据记忆
+                    this.stdDto = this.$copyObj(row); // 消除修改时的数据影响
+                    this.isAdd = false; // 激活增加提交按钮的功
+                    this.formTitle = "修改规格参数窗口"; // 修改窗口的标题
+                    this.visible = true // 显示窗口
+                },
+
+                // 执行增加
+                execAdd(){
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '加载中...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    this.$axios.post("/info/standard/std",this.stdDto).then(resp => {
+                        console.log(resp);
+                        loading.close(); // 关闭加载框
+                        let res = resp.data;
+                        if(res.success) {
+                                this.visible = false; // 关闭弹窗
+                                this.getPage(this.page.pageTotal+1); // 刷新当前页
+                                this.$message({
+                                    message: res.message,
+                                    type: 'success'
+                                });
+                            } else {
+                                this.$message({
+                                    message: res.message,
+                                    type: 'error'
+                                });
+                            }
+                    })
+                    .catch(error => {
+                        loading.close(); // 关闭加载框
+                        console.log(error);
+                    });
+                },
+                // 执行修改
+                execUdp(){
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '加载中...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    this.$axios.put("/info/standard/std",this.stdDto).then(resp => {
+                        console.log(resp);
+                        loading.close(); // 关闭加载框
+                        let res = resp.data;
+                        if (res.success) {
+                                this.visible = false; // 关闭弹窗
+                                this.getPage(this.page.pageNum); // 刷新当前页
+                                this.$message({
+                                    message: res.message,
+                                    type: 'success'
+                                });
+                            } else {
+                                this.$message({
+                                    message: res.message,
+                                    type: 'error'
+                                });
+                            }
+                    })
+                    .catch(error => {
+                        loading.close(); // 关闭加载框
+                        console.log(error);
+                    });
+
+                },
+                // 执行批量删除
+                execBatchDel(){
+                    if(this.checkedStds.length == 0){
+                        this.$message({
+                            showClose: true,
+                            message: '您没有选择数据！',
+                            type: 'error'
+                        });
+                        return;
+                    }
+
+                    let ids = [];
+                    for(let std of this.checkedStds){
+                        ids.push(std.standard_id);
+                    }
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '加载中...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    $axios.delete('/info/standard/std', {data:ids})
+                        .then(res => {
+                            loading.close();
+                            let result = res.data;
+                            if (result.success) {
+                            
+                                this.getPage(this.page.pageNum);
+                                this.$message({
+                                    message: result.message,
+                                    type: 'success'
+                                });
+                            } else {
+                                this.$message({
+                                    message: result.message,
+                                    type: 'error'
+                                });
+                            }
+                        })
+                        .catch(err => {
+                            loading.close();
+                            console.log(err);
+                        });
+                },
+
+                // 执行单删
+                execSingleDelete(index, row){
+                    console.log(index, row);
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '加载中...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    this.$axios.delete(`/info/standard/std/${row.standard_id}`).then(resp => {
+                        console.log(resp);
+                        loading.close(); // 关闭加载框
+                        let res = resp.data;
+                        if (res.success) {
+                                this.getPage(this.page.pageNum); // 刷新当前页
+                                this.$message({
+                                    message: res.message,
+                                    type: 'success'
+                                });
+                            } else {
+                                this.$message({
+                                    message: res.message,
+                                    type: 'error'
+                                });
+                            }
+                    })
+                    .catch(error => {
+                        loading.close(); // 关闭加载框
+                        console.log(error);
+                    });
+                },
+                // 页面数据数量变化
+                pageSizeChange(size) { 
+                    console.log(`每页 ${size} 条`);
+                    this.queryObj.pageSize = size; // 修改页面大小
+                    this.getPage(1); // 重新查询
+                },
+                // 当前页码
+                pageNumChange(currPage) {
+                    console.log(`当前页: ${currPage}`);
+                    this.queryObj.pageNum = currPage; // 修改页码
+                    this.getPage(currPage); // 重新查询
+                },
+                // 实现对标签的过滤作用
+                filterStat(value, row){
+                    //console.log(value);
+                    //console.log(row.standard_status);
+                    // 调用已生成的原生过滤方法
+                    return this.$filterStat(value, row.standard_status);
+                },
+                updateStatus(row){
+                    let stateStr; // 目标状态码
+                    const stateMapper = { // 状态修改对应表
+                        '00':'22',
+                        '22':'55',
+                        '55':'77',
+                        '77':'55',
+                    }
+                    stateStr = row.standard_id +'-'+ stateMapper[row.standard_status]; // 获取需要修改的目标状态
+                    //console.log("修改的编号和对应的目标状态为："+stateStr);
+                    this.$axios.put(`/info/standard/std/${stateStr}`)
+                               .then((resp) => {
+                                let res = resp.data;
+                                if (res.success) {
+                                        this.getPage(this.page.pageNum); // 刷新当前页
+                                        this.$message({
+                                            message: res.message,
+                                            type: 'success'
+                                        });
+                                    } else {
+                                        this.$message({
+                                            message: res.message,
+                                            type: 'error'
+                                        });
+                                    }
+                               })
+                               .catch((error) => {});
+                }
+            },
+            mounted() {
+                this.getPage(1); // 查询第一页
+            },
+            filters: {
+                // 依据状态码，渲染对应的tag类型
+                filterTagType(state){
+                    const filterType = {
+                        '00':'info',
+                        '22':'',
+                        '55':'success',
+                        '77':'warning',
+                        '99':'danger'
+                    }
+                    return filterType[state];
+                },
+                // 依据状态码，渲染对应的tag名称
+                filterTagName(state){
+                    const filterName = {
+                        '00':'未确定',
+                        '22':'已确定',
+                        '55':'已启用',
+                        '77':'已禁用',
+                        '99':'已删除'
+                    }
+                    return filterName[state]
+                }
+            }
+        });
+
+
+    </script>
+</body>
+
+</html>

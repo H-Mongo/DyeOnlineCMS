@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+	content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<title>花色号界面</title>
+<link rel="stylesheet" href="../../element-ui/theme-chalk/index.css">
+</head>
+<body>
+
+	<div id="app">
+	
+		<el-container style="height:40px;">
+			<el-breadcrumb separator-class="el-icon-arrow-right">
+			  <el-breadcrumb-item>基础信息管理</el-breadcrumb-item>
+			  <el-breadcrumb-item><a href="#">花色号维护</a></el-breadcrumb-item>
+			</el-breadcrumb>
+		</el-container>
+		
+		<el-form :inline="true" :model="query">
+		  <el-form-item label="颜色编号" >
+		    <el-input v-model="query.co_id" placeholder="请输入颜色编号"></el-input>
+		  </el-form-item>
+		  <el-form-item label="颜色名称">
+		    <el-input v-model="query.co_name" placeholder="请输入颜色名称"></el-input>
+		  </el-form-item>
+		  <el-form-item label="颜色备注">
+		    <el-input v-model="query.co_remark" placeholder="请输入颜色备注"></el-input>
+		  </el-form-item>
+		  <el-form-item label="颜色状态">
+		  <!-- 状态 :  00-未确定 22-确定 55-启用 77-禁用 99-逻辑删除 -->
+		    <el-select v-model="query.co_status"   clearable  placeholder="请选择颜色状态">
+		      <el-option label="未确定" value="00"></el-option>
+		      <el-option label="确定" value="22"></el-option>
+		      <el-option label="启用" value="55"></el-option>
+		      <el-option label="禁用" value="77"></el-option>
+		    </el-select>
+		  </el-form-item>
+		  <el-form-item>
+		    <el-button type="primary" icon="el-icon-search"  @click.prevent="getColorPage(1)">查询</el-button>
+		  </el-form-item>
+		</el-form>
+		
+		<el-button type="success" icon="el-icon-circle-plus-outline"   @click="openColorAddWin">新增</el-button> 
+		<el-button type="danger" icon="el-icon-delete" @click="executeMoreDel">批量删除</el-button>
+		
+		<el-table :data="page.rows"  stripe style="width: 100%"  @selection-change="handleSelectionChange" >
+			<el-table-column type="selection" width="55">
+		    </el-table-column>
+			<el-table-column prop="co_id" label="颜色编号" width="180">
+			</el-table-column> 
+			<el-table-column prop="co_name" label="颜色名称" width="180">
+			</el-table-column> 
+			<el-table-column prop="co_remark" label="颜色备注" width="180"> 
+			</el-table-column> 
+			
+			<el-table-column prop="co_status" label="颜色状态" width="180"> 
+				 <template  slot-scope="scope">
+                    <el-tag effect="dark" type="info" v-if="scope.row.co_status==00">未确定</el-tag>
+                    <el-tag effect="dark" type="" v-if="scope.row.co_status==22">已确定</el-tag>
+                    <el-tag effect="dark" type="success" v-if="scope.row.co_status==55">已启用</el-tag>
+                    <el-tag  effect="dark" type="danger" v-if="scope.row.co_status==77">已禁用</el-tag>
+                 </template>
+			</el-table-column> 
+			
+			<el-table-column label="操作">
+		      
+		      <template slot-scope="scope">
+		      	 <el-button type="primary"  icon="el-icon-circle-check"  v-if="scope.row.co_status==00" @click="updColorStatus(scope.row)">确定</el-button>
+		      	 <el-button type="success"   icon="el-icon-circle-plus-outline" v-if="scope.row.co_status==22 || scope.row.co_status==77" @click="updColorStatus(scope.row)">启用</el-button>
+		      	 <el-button type="danger"   icon="el-icon-circle-close" v-if="scope.row.co_status==55" @click="updColorStatus(scope.row)">禁用</el-button>
+		      	 
+		        <el-button type="primary"  icon="el-icon-edit-outline"  @click="openUpdColorWin(scope.row)">编辑</el-button>
+		        <el-button type="danger" icon="el-icon-delete"  @click="handleColorDelete(scope.row.co_id)">删除</el-button>
+		      </template>
+		    
+		    </el-table-column>
+		</el-table>
+
+		<!-- 分页条-->
+		<el-pagination 
+			background 
+			layout="sizes,prev, pager,next,->,total,jumper"
+		    :total="page.total"	    
+		    :page-sizes="[3, 5, 8, 10,12,15,20,25]"
+		    :page-size.sync="page.pageSize"
+		    :current-page.sync="page.pageNum"
+		    @size-change="handleSizeChange"
+		    @current-change="handleCurrentChange"
+		>
+		</el-pagination> 
+
+		<!--新增窗口 -->
+		<el-dialog title="新增颜色信息" :visible.sync="colorAddWinVisible">
+		 <el-form :model="newColor">
+		    <el-form-item label="颜色名称" :label-width="'120px'">
+		      <el-input v-model="newColor.co_name" autocomplete="off"></el-input>
+		    </el-form-item>
+		    <el-form-item label="颜色备注" :label-width="'120px'">
+		      <el-input v-model="newColor.co_remark" autocomplete="off"></el-input>
+		    </el-form-item>
+		  </el-form>
+		  <div slot="footer" class="dialog-footer">
+		    <el-button @click="colorAddWinVisible = false">取 消</el-button>
+		    <el-button type="primary" @click="executeColorAdd">确 定</el-button>
+		  </div>
+		</el-dialog> 
+		 
+		
+		<!--修改窗口 -->
+		<el-dialog title="修改颜色信息" :visible.sync="colorUpdWinVisible">
+		 <el-form :model="oldColor">
+		    <el-form-item label="颜色名称" :label-width="'120px'">
+		      <el-input v-model="oldColor.co_name" autocomplete="off"></el-input>
+		    </el-form-item>
+		    <el-form-item label="颜色备注" :label-width="'120px'">
+		      <el-input v-model="oldColor.co_remark" autocomplete="off"></el-input>
+		    </el-form-item>
+		  </el-form>
+		  <div slot="footer" class="dialog-footer">
+		    <el-button @click="colorUpdWinVisible = false">取 消</el-button>
+		    <el-button type="primary" @click="executeColorUpd">确 定</el-button>
+		  </div>
+		</el-dialog> 
+		
+	</div>
+
+
+	<script src="../../js/vue.min.js"></script>
+	<script src="../../js/axios.min.js"></script>
+	<script src="../../element-ui/index.js"></script>
+	<script src="../../js/my.js"></script>
+
+	<script type="text/javascript">
+	
+		const objCopy = function(obj){
+			
+			let exchange ={};
+			
+			for(let props in obj){
+				
+				exchange[props] = obj[props];
+				
+			}
+			return exchange;			
+			
+		}
+	
+	
+		//修改颜色状态
+		const updColorStatus = function(newColorStatus){
+			console.log(newColorStatus);
+			this.$axios.put('/info/color/status',newColorStatus)
+				.then((response)=>{
+					
+					let result = response.data;
+					
+					if(result.success){
+						
+						this.getColorPage(this.page.pageNum);
+						
+						this.$message({
+					          message: result.message,
+					          type: 'success'
+					        });
+						
+					}else{
+						
+						this.$message({
+					          message: result.message,
+					          type: 'error'
+					        });
+					}
+				})
+				.catch((error)=>{
+					console.log(error);
+					
+				})
+		}
+		
+		
+		//单选删除
+		const handleColorDelete = function(co_id){
+			
+			this.$axios.delete(`/info/color/color/${co_id}`) //模板字符串
+			.then((response)=>{
+				
+				let result = response.data;
+				
+				if(result.success){
+					
+					this.getColorPage(this.page.pageNum);//回到当前页
+					
+					this.$message({
+				          message: result.message,
+				          type: 'success'
+				        });
+				}else{
+					this.$message({
+				          message: result.message,
+				          type: 'error'
+				        });
+				}
+			})
+			.catch((error)=>{
+				console.log(error);
+			});
+			
+		} 
+	
+		//多选框
+		const handleSelectionChange = function(arr){
+			this.checkedColor = arr;
+		}
+		
+		//批量删除
+		const executeMoreDel = function(){
+			
+			console.log(this.checkedColor);
+			
+			if(this.checkedColor.length == 0){
+				this.$message({
+					  showClose: true,
+			          message: "请至少选择一条数据！！！",
+			          type: 'error'
+			        });
+				return;
+			}
+			
+			let ids = [];
+			
+			for(let color of this.checkedColor){
+				ids.push(color.co_id);
+			}
+			
+			this.$axios.delete('/info/color/color',{ data:ids })
+				.then((response)=>{
+					let result = response.data;
+					
+					if(result.success){
+						
+						this.getColorPage(this.page.pageNum);//回到当前页
+						
+						this.$message({
+					          message: result.message,
+					          type: 'success'
+					        });
+					}else{
+						this.$message({
+					          message: result.message,
+					          type: 'error'
+					        });
+					}
+				})
+				.catch((error)=>{
+					console.log(error);
+				});
+		}
+	
+		
+		//打开修改窗口
+		const openUpdColorWin = function(oldColor){
+			
+			this.oldColor = objCopy(oldColor);
+			this.colorUpdWinVisible = true;
+		}
+		
+		//执行修改
+		const executeColorUpd = function(){
+			
+			this.$axios.put('/info/color/color',this.oldColor)
+			.then((response)=>{
+				let result = response.data;
+				
+				if(result.success){
+					
+					this.colorUpdWinVisible = false;
+					
+					this.getColorPage(this.page.pageNum);//回到当前页
+					
+					this.$message({
+				          message: result.message,
+				          type: 'success'
+				        });
+				}else{
+					this.$message({
+				          message: result.message,
+				          type: 'error'
+				        });
+				}
+			})
+			.catch((error)=>{
+				console.log(error);
+			});
+			
+		}
+		
+	
+	     //打开颜色新增窗口
+		const openColorAddWin = function(){
+			this.colorAddWinVisible = true;
+		};
+		 
+		//执行增加
+		const executeColorAdd = function(){
+			
+			const loading = this.$loading({
+		          lock: true,
+		          text: '正在加载中，请稍等......',
+		          background: 'rgba(0, 0, 0, 0.7)'
+		        });
+			
+			this.$axios.post('/info/color/color',this.newColor)
+				.then((response)=>{
+					loading.close();//关闭加载
+					let result = response.data;
+					console.log(result );
+					if(result.success){
+						
+						this.colorAddWinVisible = false;
+						
+						this.getColorPage(this.page.pageTotal+1);//回到最后一页
+						
+						this.$message({
+					          message: result.message,
+					          type: 'success'
+					        });
+					}else{
+						this.$message({
+					          message: result.message,
+					          type: 'error'
+					        });
+					}
+				})
+				.catch((error)=>{
+					loading.close();//关闭加载
+					console.log(error);
+				});
+			  this.newColor = {}; //清空表单
+		}; 
+		
+		 
+		
+		
+		const vm = new Vue({
+			el: '#app',
+			data:{
+				query:{//查询参数
+					pageSize:5,
+					pageNum:1
+				},
+				page:{},//分页参数
+				
+				colorAddWinVisible:false, //新增窗口是否可见
+				
+				newColor:{},
+				
+				checkedColor:[],//多选框删除
+				
+				oldColor:{},
+				
+				colorUpdWinVisible:false, //修改窗口是否可见
+				
+
+				
+				
+			},
+			methods:{
+				
+				getColorPage(pageNum){
+					this.query.pageNum = pageNum;
+					console.log(this.query.pageNum );
+					this.$axios.get('/info/color/color',{params:this.query})
+						.then((response)=>{
+							this.page = response.data;
+						})
+						.catch((error)=>{
+							console.log(error);
+						})
+				},
+				
+				//每页显示记录数改变时会触发
+				handleSizeChange(size){
+					this.query.pageSize = size;
+					this.getColorPage(1);
+				},
+				
+				//当前页改变时会触发
+				handleCurrentChange(pageNum){
+					this.getColorPage(pageNum);
+				},
+				
+				openColorAddWin,//打开新增窗口，等同于openColorAddWin:openColorAddWin
+
+				executeColorAdd, //执行修改
+				
+				handleSelectionChange,//处理多选框
+				
+				executeMoreDel,//批量删除
+				
+				openUpdColorWin, //打开修改窗口
+				
+				executeColorUpd, //执行修改
+				
+				handleColorDelete , //单个删除
+				
+				updColorStatus //修改状态
+				
+			},
+			mounted(){
+				this.getColorPage(1);
+			}
+
+		});
+	</script>
+</body>
+</html>
